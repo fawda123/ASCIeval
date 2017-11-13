@@ -1,0 +1,3 @@
+# README
+
+Materials for evaluating the ASCI index. See the sister repository [here](https://github.com/SCCWRP/ASCI) for the complete package.
