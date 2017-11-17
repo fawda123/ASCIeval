@@ -1,0 +1,4 @@
+"","x"
+"1","CondQR50"
+"2","MAX_ELEV"
+"3","LST32AVE"

@@ -9,8 +9,8 @@ library(raster)
 library(readxl)
 library(lubridate)
 
-# library(ASCI)
-devtools::load_all('../ASCI')
+library(ASCI)
+# devtools::load_all('../ASCI')
 
 ######
 # pre-processing of Susie's raw data
@@ -72,8 +72,8 @@ devtools::load_all('../ASCI')
 # get asci object and save
 data(taxain)
 data(sitein)
-results <- ASCI(taxain, sitein)
-save(results, file = 'data/results.RData', compress = 'xz')
+pkgdat <- ASCI(taxain, sitein)
+save(pkgdat, file = 'data/pkgdat.RData', compress = 'xz')
 
 ######
 # site meta - ref/int/str, cal/val
@@ -82,7 +82,7 @@ save(results, file = 'data/results.RData', compress = 'xz')
 # import environmental data and scores for OE, MMI, clip all by SMC boundaries
 
 # all data
-fls <- list.files('ignore', pattern = '\\.csv$', full.names = TRUE) %>% 
+fls <- list.files('ignore', pattern = 'Scores.*\\.csv$', full.names = TRUE) %>% 
   tibble(fl = .) %>% 
   mutate(
     data = map(fl, read.csv, stringsAsFactors = FALSE)
@@ -90,7 +90,6 @@ fls <- list.files('ignore', pattern = '\\.csv$', full.names = TRUE) %>%
 
 # OE data, filter by sites in latlon
 sitcat <- fls %>% 
-  filter(grepl('Scores', fl)) %>% 
   unnest %>%
   dplyr::select(X, Type) %>% 
   filter(!Type %in% 'notrecent') %>%
@@ -101,40 +100,50 @@ sitcat <- fls %>%
 save(sitcat, file = 'data/sitcat.RData', compress = 'xz')
 
 ######
-# original data from Susie
+# original data for checking
+
+# all data
+fls <- list.files('legacy', pattern = '\\.csv$', full.names = TRUE) %>% 
+  tibble(fl = .) %>% 
+  mutate(
+    data = map(fl, read.csv, stringsAsFactors = FALSE)
+  )
 
 # OE data, filter by sites in latlon
 oedat <- fls %>% 
   filter(grepl('Scores', fl)) %>% 
   unnest %>% 
-  filter(!Type %in% 'notrecent') %>%
   rename(
     SampleID = X,
-    scr = OoverE
+    scr = OE.scores.OoverE
   ) %>% 
   mutate(
-    grp = gsub('^ignore/|\\.Scores.*$', '', fl),
-    ind = 'oe', 
-    SampleID = gsub('(_[0-9]+)\\.([0-9]+)\\.([0-9]+_)', '\\1/\\2/\\3', SampleID)
+    grp = gsub('legacy/Scores\\.OE\\.|\\.csv*$', '', fl),
+    grp = gsub('diatom$', 'diatoms', grp),
+    ind = 'oe'
   ) %>% 
   dplyr::select(SampleID, ind, grp, scr)
 
 # MMI data
 mmdat <- fls %>% 
-  filter(grepl('metrics', fl)) %>% 
+  filter(grepl('results', fl)) %>% 
   unnest %>% 
-  rename(
-    SampleID = X,
-    scr = Means
-  ) %>% 
+  dplyr::select(X, matches('pMMI')) %>% 
+  gather('grp', 'scr', -X) %>% 
+  na.omit %>% 
   mutate(
-    grp = gsub('^ignore/|\\.combined.*$', '', fl), 
-    ind = 'mmi', 
-    SampleID = gsub('(_[0-9]+)\\.([0-9]+)\\.([0-9]+_)', '\\1/\\2/\\3', SampleID)
+    grp = gsub('hybri', 'hybrid', grp), 
+    grp = gsub('\\.pMMI', '', grp), 
+    grp = gsub('diatom$', 'diatoms', grp),
+    ind = 'mmi'
+  ) %>% 
+  rename(
+    SampleID = X
   ) %>% 
   dplyr::select(SampleID, ind, grp, scr)
 
 # combine mmdat, oedat
-indat <- rbind(mmdat, oedat)
+orgdat <- rbind(mmdat, oedat) %>% 
+  mutate(dat = 'org')
 
-
+save(orgdat, file = 'data/orgdat.RData', compress = 'xz')
