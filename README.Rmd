@@ -1,3 +1,55 @@
 # README
 
 Materials for evaluating the ASCI index. See the sister repository [here](https://github.com/SCCWRP/ASCI) for the complete package.
+
+Files in `data` folder created in `R/dat_proc.R` unless otherwise noted:
+
+* `indat.RData` Original ASCI results from Susie
+* `results.RData` Complete ASCI results from `sitein` and `taxain`
+* `sitcat.RData` Site categories as reference (cal/val), intermediate, and stressed
+* `sitein.RData` Processed site data from raw data
+* `taxain.RData` Processed taxonomy data from raw data
+
+```{r, message = F, warning = F, fig.height = 6, fig.width = 8}
+library(tidyverse)
+library(ASCI)
+data(results)
+data(indat)
+data(sitcat)
+
+pkdat <- results %>% 
+  scores %>% 
+  select(SampleID, taxa, OoverE, MMI) %>% 
+  rename(
+    oe = OoverE, 
+    mmi = MMI,
+    grp = taxa
+    ) %>% 
+  gather('ind', 'scr', oe, mmi) %>% 
+  mutate(dat = 'pkg') %>% 
+  select(SampleID, ind, grp, scr, dat)
+
+rcave <- left_join(pkdat, sitcat, by = 'SampleID') %>% 
+  filter(Type %in% 'rc' & ind %in% 'mmi') %>% 
+  group_by(grp) %>% 
+  summarise(ave = mean(scr, na.rm = TRUE))
+
+pkdat <- pkdat %>% 
+  left_join(rcave, by = 'grp') %>% 
+  mutate(
+    scr = ifelse(ind %in% 'mmi', scr / ave, scr)
+  ) %>% 
+  select(-ave)
+
+indat <- indat %>% 
+  mutate(dat = 'org')
+
+toplo <- rbind(pkdat, indat) %>% 
+  spread(dat, scr)
+
+ggplot(toplo, aes(x = org, y = pkg)) +
+  facet_wrap(ind ~ grp) +
+  geom_point(alpha = 0.6) + 
+  geom_abline(intercept = 0, slope = 1)
+```
+
