@@ -8,7 +8,7 @@ library(sp)
 library(raster)
 library(readxl)
 library(lubridate)
-
+library(sf)
 library(ASCI)
 # devtools::load_all('../ASCI')
 
@@ -76,30 +76,6 @@ pkgdat <- ASCI(taxain, sitein)
 save(pkgdat, file = 'data/pkgdat.RData', compress = 'xz')
 
 ######
-# site meta - ref/int/str, cal/val
-
-##
-# import environmental data and scores for OE, MMI, clip all by SMC boundaries
-
-# all data
-fls <- list.files('ignore', pattern = 'Scores.*\\.csv$', full.names = TRUE) %>% 
-  tibble(fl = .) %>% 
-  mutate(
-    data = map(fl, read.csv, stringsAsFactors = FALSE)
-  )
-
-# OE data, filter by sites in latlon
-sitcat <- fls %>% 
-  unnest %>%
-  dplyr::select(X, Type) %>% 
-  filter(!Type %in% 'notrecent') %>%
-  unique %>% 
-  rename(SampleID = X) %>% 
-  mutate(SampleID = gsub('(_[0-9]+)\\.([0-9]+)\\.([0-9]+_)', '\\1/\\2/\\3', SampleID))  
-
-save(sitcat, file = 'data/sitcat.RData', compress = 'xz')
-
-######
 # original data for checking
 
 # all data
@@ -147,3 +123,46 @@ orgdat <- rbind(mmdat, oedat) %>%
   mutate(dat = 'org')
 
 save(orgdat, file = 'data/orgdat.RData', compress = 'xz')
+
+######
+# psa regions 
+
+prstr <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0" 
+psa <- st_read('S:/Spatial_Data/RCMP_needs editting/Inputs/PSA6_090111/PSA6_2011.shp') %>% 
+  st_transform(prstr)
+save(psa, file = 'data/psa.RData', compress = 'xz')
+
+######
+# site meta - ref/int/str, cal/val, psa region
+
+##
+# import environmental data and scores for OE, MMI, clip all by SMC boundaries
+
+# all data
+fls <- list.files('ignore', pattern = 'Scores.*\\.csv$', full.names = TRUE) %>% 
+  tibble(fl = .) %>% 
+  mutate(
+    data = map(fl, read.csv, stringsAsFactors = FALSE)
+  )
+
+# OE data, filter by sites in latlon
+sitcat <- fls %>% 
+  unnest %>%
+  dplyr::select(X, Type) %>% 
+  filter(!Type %in% 'notrecent') %>%
+  unique %>% 
+  rename(SampleID = X) %>% 
+  mutate(SampleID = gsub('(_[0-9]+)\\.([0-9]+)\\.([0-9]+_)', '\\1/\\2/\\3', SampleID))  
+
+sitmet <- sitein %>% 
+  dplyr::select(SampleID, New_Long, New_Lat) %>% 
+  st_as_sf(coords = c('New_Long', 'New_Lat')) %>% 
+  st_set_crs(prstr)
+
+
+# sitmet <- st_intersection(sitmet, psa)
+
+# save(sitcat, file = 'data/sitcat.RData', compress = 'xz')
+
+# ggplot(sitcat) + geom_sf() + geom_sf(data = sk_town, fill = "darkolivegreen2")
+# ri_towns_gg

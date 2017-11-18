@@ -25,7 +25,7 @@ Files in `data` folder created in `R/dat_proc.R` unless otherwise noted:
 
 pkgdat <- pkgdat %>% 
   scores %>% 
-  select(SampleID, taxa, OoverE, MMI) %>% 
+  dplyr::select(SampleID, taxa, OoverE, MMI) %>% 
   rename(
     oe = OoverE, 
     mmi = MMI,
@@ -33,7 +33,7 @@ pkgdat <- pkgdat %>%
     ) %>% 
   gather('ind', 'scr', oe, mmi) %>% 
   mutate(dat = 'pkg') %>% 
-  select(SampleID, ind, grp, scr, dat)
+  dplyr::select(SampleID, ind, grp, scr, dat)
 
 toplo <- rbind(pkgdat, orgdat) %>% 
   spread(dat, scr)
@@ -43,4 +43,14 @@ ggplot(toplo, aes(x = org, y = pkg)) +
   geom_point(alpha = 0.6) + 
   geom_abline(intercept = 0, slope = 1)
 ```
+
+Summary of performance:
+
+```{r}
+
+
+
+```
+
+
 
