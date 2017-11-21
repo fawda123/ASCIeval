@@ -145,24 +145,29 @@ fls <- list.files('ignore', pattern = 'Scores.*\\.csv$', full.names = TRUE) %>%
     data = map(fl, read.csv, stringsAsFactors = FALSE)
   )
 
-# OE data, filter by sites in latlon
+# site category - refernece (cal, val), stressed, intermediate, and notrecent (repeats)
 sitcat <- fls %>% 
   unnest %>%
-  dplyr::select(X, Type) %>% 
-  filter(!Type %in% 'notrecent') %>%
+  dplyr::select(X, Type) %>%
   unique %>% 
   rename(SampleID = X) %>% 
   mutate(SampleID = gsub('(_[0-9]+)\\.([0-9]+)\\.([0-9]+_)', '\\1/\\2/\\3', SampleID))  
 
+# intersect site locations with psa regions
 sitmet <- sitein %>% 
   dplyr::select(SampleID, New_Long, New_Lat) %>% 
   st_as_sf(coords = c('New_Long', 'New_Lat')) %>% 
-  st_set_crs(prstr)
+  st_set_crs(prstr) %>% 
+  st_intersection(psa)
+
+# remove geometry
+sitmet_nogeo <- sitmet %>% 
+  dplyr::select(SampleID, PSA_REGION) %>% 
+  st_set_geometry(NULL)
+
+sitcat <- sitcat %>% 
+  left_join(sitmet_nogeo, by = 'SampleID')
+
+save(sitcat, file = 'data/sitcat.RData', compress = 'xz')
 
 
-# sitmet <- st_intersection(sitmet, psa)
-
-# save(sitcat, file = 'data/sitcat.RData', compress = 'xz')
-
-# ggplot(sitcat) + geom_sf() + geom_sf(data = sk_town, fill = "darkolivegreen2")
-# ri_towns_gg
