@@ -46,9 +46,152 @@ ggplot(toplo, aes(x = org, y = pkg)) +
 
 Summary of performance:
 
-```{r}
+```{r eval = F}
 
+data(pkgdat)
+data(sitcat)
 
+# get predictive index scores from pkgdat
+scr <- pkgdat %>% 
+  scores %>% 
+  dplyr::select(SampleID, taxa, OoverE, MMI) %>% 
+  rename(
+    oe = OoverE, 
+    mmi = MMI,
+    grp = taxa
+  ) %>% 
+  gather('ind', 'scr', oe, mmi) %>% 
+  mutate(typ = 'Predictive')
+
+# get null scores from pkgdat
+nll <- pkgdat %>% 
+  .@null_OE %>% 
+  rename(
+    grp = taxa,
+    ind = met, 
+    scr = val
+  ) %>% 
+  dplyr::select(SampleID, grp, ind, scr) %>% 
+  filter(ind %in% 'OoverE.null') %>% 
+  mutate(
+    ind = 'oe',
+    typ = 'Null'
+    ) 
+
+# combine predictive and null scores
+toprf <- rbind(scr, nll) %>% 
+  left_join(sitcat, by = 'SampleID') %>% 
+  na.omit %>% 
+  filter(!psa %in% 'Central_Valley') %>% 
+  filter(cls %in% c('rc', 'rv', 'str', 'notrecent')) %>% 
+  separate(SampleID, c('StationID', 'Replicate'), sep = '_[0-9]+/[0-9]+/[0-9]+_', remove = FALSE) %>% 
+  group_by(grp, ind, typ) %>% 
+  nest
+
+# evaluate by grp, ind, typ
+# combine predictive and null scores
+toprf <- rbind(scr, nll) %>% 
+  left_join(sitcat, by = 'SampleID') %>% 
+  na.omit %>% 
+  filter(!psa %in% 'Central_Valley') %>% 
+  filter(cls %in% c('rc', 'rv', 'str', 'notrecent')) %>% 
+  separate(SampleID, c('StationID', 'Replicate'), sep = '_[0-9]+/[0-9]+/[0-9]+_', remove = FALSE) %>% 
+  group_by(grp, ind, typ) %>% 
+  nest
+
+prf <- toprf %>% 
+  mutate(prf = map(data, function(x){
+
+    # nest by cal, val
+    ref <- x %>% 
+      filter(cls %in% c('rc', 'rv')) %>% 
+      group_by(cls) %>% 
+      nest
+
+    # get stressed
+    str <- x %>% 
+      filter(cls %in% 'str')
+    
+    # get reps
+    ntr <- x %>% 
+      filter(cls %in% 'notrecent')
+       
+    # evaluate 
+    refperf <- ref %>% 
+      mutate(
+        evl = map(data, function(scrs){
+          
+          # average scores
+          ave <- scrs %>% 
+            .$scr %>% 
+            mean(na.rm = TRUE)
+          
+          # f stat
+          fst <- scrs %>% 
+            lm(scr ~ psa, .) %>% 
+            summary %>% 
+            .$fstatistic %>% 
+            .[1]   
+          
+          # variance with natural gradients
+          vrs_nat <- scrs %>% 
+            .$scr %>% 
+            var(na.rm = TRUE)
+          
+          # precision among sites
+          prc_amg <- scr %>% 
+            .$scr %>% 
+            sd(na.rm = TRUE)
+          
+          # precision within sites
+          prc_wth <- scrs %>% 
+            inner_join(ntr, by = 'StationID') %>% 
+            dplyr::select(StationID, scr.x, scr.y) %>% 
+            gather('scr', 'val', scr.x, scr.y) %>% 
+            group_by(StationID) %>% 
+            mutate(val = val - mean(val)) %>% 
+            .$val %>% 
+            sd(na.rm = TRUE)
+          
+          # responsiveness as t.test
+          res_tst <- scrs %>% 
+            .$scr %>% 
+            t.test(., str$scr) %>% 
+            .$statistic
+          
+          # responsiveness as var
+          res_var <- scrs %>% 
+            .$scr %>% 
+            c(., str$scr) %>% 
+            var(na.rm = TRUE)
+          
+          # combine for output
+          out <- list(
+            ave = ave,
+            fst = fst,
+            vrs_nat = vrs_nat, 
+            prc_amg = prc_amg,
+            prc_wth = prc_wth, 
+            res_tst = res_tst,
+            res_var = res_var
+            ) %>% 
+            data.frame
+          
+          return(out)
+          
+        })
+      ) %>% 
+      dplyr::select(-data) %>% 
+      unnest
+    
+    return(refperf)
+    
+    })
+  
+  ) %>% 
+  dplyr::select(-data) %>% 
+  unnest
+  
 
 ```
 

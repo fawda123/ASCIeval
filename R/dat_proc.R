@@ -150,7 +150,10 @@ sitcat <- fls %>%
   unnest %>%
   dplyr::select(X, Type) %>%
   unique %>% 
-  rename(SampleID = X) %>% 
+  rename(
+    SampleID = X,
+    cls = Type
+    ) %>% 
   mutate(SampleID = gsub('(_[0-9]+)\\.([0-9]+)\\.([0-9]+_)', '\\1/\\2/\\3', SampleID))  
 
 # intersect site locations with psa regions
@@ -163,7 +166,8 @@ sitmet <- sitein %>%
 # remove geometry
 sitmet_nogeo <- sitmet %>% 
   dplyr::select(SampleID, PSA_REGION) %>% 
-  st_set_geometry(NULL)
+  st_set_geometry(NULL) %>% 
+  rename(psa = PSA_REGION)
 
 sitcat <- sitcat %>% 
   left_join(sitmet_nogeo, by = 'SampleID')
