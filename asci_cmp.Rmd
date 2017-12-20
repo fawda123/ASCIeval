@@ -16,7 +16,7 @@ library(raster)
 library(gridExtra)
 library(ASCI)
 
-opts_chunk$set(message = F, warning = F, fig.path = 'figs/', dev = 'png', dev.args = list(tiff = list(family = 'serif')), dpi = 400, out.width = '70%')
+opts_chunk$set(message = F, warning = F, fig.path = 'figs/', dev = 'png', dev.args = list(tiff = list(family = 'serif')), dpi = 400, out.width = '50%')
 
 load(file = 'data/sitcat.RData')
 data(pkgdat)
@@ -29,7 +29,7 @@ sitcat2 <- sitcat %>%
   filter(cls %in% c('rc', 'str'))
 
 # h20 scores
-h20_ref <- aldat %>% 
+h20 <- aldat %>% 
   dplyr::filter(ind %in% 'H20') %>% 
   mutate(
     StationCode = gsub('^(.*)_.*_.*$', '\\1', SampleID)
@@ -40,13 +40,13 @@ h20_ref <- aldat %>%
   dplyr::select(-StationCode)
 
 # asci scores, combine with h20
-asc_ref <- scores(pkgdat) %>% 
+asc <- scores(pkgdat) %>% 
   inner_join(., sitcat, by = 'SampleID') %>% 
   filter(taxa %in% 'hybrid') %>% 
   dplyr::select(SampleID, MMI, cls, psa) %>% 
   filter(cls %in% c('str', 'rc') & !psa %in% 'Central_Valley' & !is.na(psa)) %>% 
   mutate(
-    scr = MMI / mean(MMI, na.rm = T), 
+    scr = MMI / mean(MMI[cls %in% 'rc'], na.rm = T), 
     ind = 'MMI',
     psa = gsub('_', ' ', psa), 
     StationCode = gsub('^(.*)_.*_.*$', '\\1', SampleID)
@@ -54,10 +54,10 @@ asc_ref <- scores(pkgdat) %>%
   dplyr::select(cls, psa, SampleID, ind, scr)
 
 # combine
-scrs <- rbind(h20_ref, asc_ref)
+scrs <- rbind(h20, asc)
 ```
 
-```{r biascmp, fig.height = 5, fig.width = 7}
+```{r biascmp, fig.height = 5, fig.width = 5}
 # get rc only, tenth percentile for thrsh
 toplo <- scrs %>% 
   filter(cls %in% 'rc') %>% 
@@ -68,6 +68,7 @@ thrsh <- toplo %>%
 
 p1 <- ggplot(toplo, aes(x = psa, y = scr)) + 
   geom_boxplot(outlier.size = 1, alpha = 0.7, fill = 'lightblue') + 
+  geom_hline(aes(yintercept = 1)) + 
   geom_hline(aes(yintercept = thrsh), linetype = 'dashed') + 
   scale_y_continuous('Index Score') + 
   facet_wrap(~ind, ncol = 1) +
@@ -100,13 +101,14 @@ ftst <- toplo %>%
 ftst
 ```
 
-```{r senscmp, fig.height = 5, fig.width = 7}
+```{r senscmp, fig.height = 5, fig.width = 5}
 toplo <- scrs %>% 
   filter(psa %in% c('North Coast', 'Sierras', 'South Coast')) %>% 
   left_join(thrsh, by = 'ind')
 
 p1 <- ggplot(toplo, aes(x = psa, y = scr, fill = cls)) + 
   geom_boxplot(outlier.size = 1, alpha = 0.7) + 
+  geom_hline(aes(yintercept = 1)) + 
   geom_hline(aes(yintercept = thrsh), linetype = 'dashed') + 
   scale_y_continuous('Index Score') + 
   facet_wrap(~ind, ncol = 1) +
