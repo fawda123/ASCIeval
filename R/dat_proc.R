@@ -9,8 +9,8 @@ library(raster)
 library(readxl)
 library(lubridate)
 library(sf)
-library(ASCI)
-# devtools::load_all('../ASCI')
+# library(ASCI)
+devtools::load_all('../ASCI')
 
 ######
 # pre-processing of Susie's raw data
@@ -174,4 +174,34 @@ sitcat <- sitcat %>%
 
 save(sitcat, file = 'data/sitcat.RData', compress = 'xz')
 
+##
+# other algae ibi scores
 
+# old algal ibi divided by median of ref calibration scores to standardize
+thrsh <- tibble(
+  ind = c('H20','D18','S2'),
+  thrsh = c(75, 79, 69)
+)
+
+# process
+aldat <- read.csv('ignore/tblAlgaeIBI.csv', stringsAsFactors = FALSE) %>% 
+  dplyr::select(StationCode, SampleDate, Replicate, S2, D18, H20) %>% 
+  mutate(
+    SampleDate = mdy_hms(SampleDate, tz = 'Pacific/Pitcairn'),
+    SampleMonth = month(SampleDate),
+    SampleDay = day(SampleDate), 
+    SampleYear = year(SampleDate)
+  ) %>% 
+  dplyr::select(-SampleDate) %>% 
+  unite('SampleDate', SampleMonth, SampleDay, SampleYear, sep ='/') %>% 
+  unite('SampleID', StationCode, SampleDate, Replicate, sep = '_') %>% 
+  filter(!duplicated(SampleID)) %>% # one duplicated....
+  gather('ind', 'scr', S2:H20) %>%
+  left_join(thrsh, by = 'ind') %>% 
+  mutate(
+    scr = scr / thrsh
+    ) %>% 
+  dplyr::select(-thrsh)
+
+# save
+save(aldat, file = 'data/aldat.RData', compress = 'xz')

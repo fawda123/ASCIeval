@@ -4,11 +4,19 @@
 library(knitr)
 library(tidyverse)
 library(ASCI)
+library(broom)
+library(rgdal)
+library(rgeos)
+library(sp)
+library(raster)
+library(gridExtra)
+
 opts_chunk$set(message = F, warning = F)
 
 data(pkgdat)
 data(orgdat)
 data(sitcat)
+data(psa)
 ```
 
 Materials for evaluating the ASCI index. See the sister repository [here](https://github.com/SCCWRP/ASCI) for the complete package.
@@ -49,6 +57,7 @@ Summary of performance:
 ```{r eval = T}
 perf(allscr)
 ```
+
 
 
 
