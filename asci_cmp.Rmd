@@ -104,7 +104,8 @@ ftst
 ```{r senscmp, fig.height = 5, fig.width = 5}
 toplo <- scrs %>% 
   filter(psa %in% c('North Coast', 'Sierras', 'South Coast')) %>% 
-  left_join(thrsh, by = 'ind')
+  left_join(thrsh, by = 'ind') %>% 
+  mutate(cls = factor(cls, levels = c('rc', 'str'), labels = c('Reference', 'Stressed')))
 
 p1 <- ggplot(toplo, aes(x = psa, y = scr, fill = cls)) + 
   geom_boxplot(outlier.size = 1, alpha = 0.7) + 
@@ -117,7 +118,7 @@ p1 <- ggplot(toplo, aes(x = psa, y = scr, fill = cls)) +
     axis.text.x = element_text(angle = 45, hjust = 1), 
     axis.title.x = element_blank(), 
     panel.border = element_rect(colour = 'black', fill = NA, size = 0.5), 
-    legend.position = 'none'
+    legend.title = element_blank()
   ) 
 
 p1
@@ -143,3 +144,30 @@ ttst <- scrs %>%
   deframe
 ttst
 ```
+
+```{r allchk, fig.height=5, fig.width = 7}
+data(sitcat)
+scrs <- scores(pkgdat) %>% 
+  filter(taxa %in% 'hybrid') %>% 
+  dplyr::select(SampleID, MMI) %>% 
+  left_join(sitcat, by = 'SampleID') %>% 
+  mutate(
+    MMI = MMI/mean(MMI[cls %in% 'rc'], na.rm = T), 
+    thrsh = quantile(MMI[cls %in% 'rc'], 0.1)
+    ) %>% 
+  filter(!is.na(psa) & !cls %in% 'notrecent') %>% 
+  mutate(cls = factor(cls, levels = c('rc', 'rv', 'int', 'str')))
+
+p1 <- ggplot(scrs, aes(x = psa, y = MMI, fill = cls)) + 
+  geom_boxplot(outlier.size = 1, alpha = 0.7) + 
+  geom_hline(aes(yintercept = 1)) + 
+  geom_hline(aes(yintercept = thrsh), linetype = 'dashed') + 
+  scale_y_continuous('Index Score') + 
+  theme_minimal(base_family = 'serif', base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), 
+    axis.title.x = element_blank(), 
+    panel.border = element_rect(colour = 'black', fill = NA, size = 0.5)
+  )
+
+p1
