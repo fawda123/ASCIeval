@@ -23,11 +23,14 @@ Materials for evaluating the ASCI index. See the sister repository [here](https:
 
 Files in `data` folder created in `R/dat_proc.R` unless otherwise noted:
 
+* `aldat.RData` data frame of additional algal index scores by site, date, sample
 * `orgdat.RData` Original ASCI results from Susie's code
 * `pkgdat.RData` Complete ASCI results from `sitein` and `taxain`, using ASCI package
+* `psa.RData` sf object of California PSA regions
 * `sitcat.RData` Site categories as reference (cal/val), intermediate, stressed, and repeats (non-recent), includes PSA region
 * `sitein.RData` Processed site data from raw data
 * `taxain.RData` Processed taxonomy data from raw data
+* `taxain_gen.RData` Duplicate file of taxain where `FinalID` column is at genus level or higher
 
 ```{r, fig.height = 6, fig.width = 8}
 

@@ -9,8 +9,8 @@ library(raster)
 library(readxl)
 library(lubridate)
 library(sf)
-# library(ASCI)
-devtools::load_all('../ASCI')
+library(ASCI)
+# devtools::load_all('../ASCI')
 
 ######
 # pre-processing of Susie's raw data
@@ -205,3 +205,53 @@ aldat <- read.csv('ignore/tblAlgaeIBI.csv', stringsAsFactors = FALSE) %>%
 
 # save
 save(aldat, file = 'data/aldat.RData', compress = 'xz')
+
+######
+# save a copy of taxain processed to genus or higher
+
+data(taxain)
+
+# this creates a lookup table from pmmilkup$traits in asci package 
+x <- pmmilkup$traits %>%
+  dplyr::select(Phylum, Class, Order, Family, Genus1, FinalIDassigned) %>% 
+  mutate_if(is.factor, as.character) %>% 
+  rowwise() %>% 
+  mutate(Genus2 = do({
+      
+      # use genus1 if not empty
+      if(Genus1 != '')
+        return(Genus1)
+      
+      chk <- c(Phylum, Class, Order, Family, Genus1)
+      
+      # get first of FinalIDassigned if all higher taxa cats are empty
+      if(all(chk == '')){
+        
+        out <- strsplit(FinalIDassigned, ' ')[[1]][1]
+        
+      # get last non-empty cat  
+      } else {
+        
+        out <- chk[chk != ''] %>% rev %>% .[1]
+        
+      }
+      
+      return(out)
+      
+      })
+    ) %>% 
+  dplyr::select(FinalIDassigned, Genus2) %>% 
+  rename(
+    FinalID = FinalIDassigned, 
+    Genus = Genus2
+    )
+
+# join taxain with key, then use strsplit
+taxain_gen <- taxain %>% 
+  left_join(x, by = 'FinalID') %>% 
+  mutate(Genus = ifelse(is.na(Genus), strsplit(FinalID, ' ')[[1]][1], Genus)) %>% 
+  dplyr::select(-FinalID) %>% 
+  rename(FinalID = Genus)
+
+# save
+save(taxain_gen, file = 'data/taxain_gen.RData', compress = 'xz')
