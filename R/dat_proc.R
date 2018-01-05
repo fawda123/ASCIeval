@@ -249,7 +249,7 @@ x <- pmmilkup$traits %>%
 # join taxain with key, then use strsplit
 taxain_gen <- taxain %>% 
   left_join(x, by = 'FinalID') %>% 
-  mutate(Genus = ifelse(is.na(Genus), strsplit(FinalID, ' ')[[1]][1], Genus)) %>% 
+  mutate(Genus = ifelse(is.na(Genus), gsub(' .*$', '', FinalID), Genus)) %>% 
   dplyr::select(-FinalID) %>% 
   rename(FinalID = Genus)
 
