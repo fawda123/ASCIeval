@@ -262,6 +262,48 @@ head(traits_gen)</code></pre>
 ## #   OxygenRequirements &lt;chr&gt;, Salinity &lt;chr&gt;, Salinity2 &lt;chr&gt;,
 ## #   Saprobity &lt;chr&gt;, TaxonomicGroup &lt;chr&gt;, TrophicState &lt;chr&gt;, ZHR &lt;chr&gt;,
 ## #   Zygnemataceae &lt;chr&gt;, `&lt;NA&gt;` &lt;chr&gt;</code></pre>
+<ul>
+<li>Indicator species analysis:</li>
+</ul>
+<pre class="r"><code>library(tidyverse)
+library(indicspecies)
+
+data(taxain)
+data(sitcat)
+
+indicators &lt;- pmmilkup$indicators 
+
+# groups for indic
+grpin &lt;- sitcat %&gt;% 
+  filter(cls %in% c('int', 'rc', 'str')) %&gt;% 
+  mutate(
+    cls = fct_recode(cls, Intermediate = 'int',  Reference = 'rc', Stressed = 'str'),
+    cls = as.character(cls)
+    ) %&gt;% 
+  dplyr::select(-psa) %&gt;% 
+  filter(SampleID %in% taxain$SampleID) %&gt;% 
+  spread(SampleID, cls) %&gt;% 
+  unlist
+
+# filter taxonomy data by sites in dev dataset, make wide format for indic  
+abuin &lt;- taxain %&gt;% 
+  dplyr::select(SampleID, FinalID, BAResult, Result) %&gt;% 
+  mutate(abund = as.numeric(pmax(BAResult, Result, na.rm = T))) %&gt;% 
+  dplyr::select(-BAResult, -Result) %&gt;% 
+  group_by(SampleID, FinalID) %&gt;% 
+  summarise(abund = sum(abund, na.rm = T)) %&gt;% 
+  ungroup %&gt;% 
+  mutate(abund = ifelse(is.na(abund), 0, 1)) %&gt;% 
+  filter(SampleID %in% names(grpin)) %&gt;% 
+  spread(FinalID, abund, fill = 0) %&gt;% 
+  data.frame(stringsAsFactors = F) %&gt;% 
+  remove_rownames %&gt;% 
+  column_to_rownames('SampleID') %&gt;% 
+  .[match(rownames(.), names(grpin)), ]
+
+x &lt;- multipatt(abuin, grpin, max.order = 1)
+
+summary(x)</code></pre>
 
 
 

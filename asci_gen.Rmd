@@ -83,3 +83,49 @@ traits_gen <- traits_gen %>%
 head(traits_gen)
 ```
 
+* Indicator species analysis:
+
+```{r, eval = F}
+library(tidyverse)
+library(indicspecies)
+
+data(taxain)
+data(sitcat)
+
+indicators <- pmmilkup$indicators 
+
+# groups for indic
+grpin <- sitcat %>% 
+  filter(cls %in% c('int', 'rc', 'str')) %>% 
+  mutate(
+    cls = fct_recode(cls, Intermediate = 'int',  Reference = 'rc', Stressed = 'str'),
+    cls = as.character(cls)
+    ) %>% 
+  dplyr::select(-psa) %>% 
+  filter(SampleID %in% taxain$SampleID) %>% 
+  spread(SampleID, cls) %>% 
+  unlist
+
+# filter taxonomy data by sites in dev dataset, make wide format for indic  
+abuin <- taxain %>% 
+  dplyr::select(SampleID, FinalID, BAResult, Result) %>% 
+  mutate(abund = as.numeric(pmax(BAResult, Result, na.rm = T))) %>% 
+  dplyr::select(-BAResult, -Result) %>% 
+  group_by(SampleID, FinalID) %>% 
+  summarise(abund = sum(abund, na.rm = T)) %>% 
+  ungroup %>% 
+  mutate(abund = ifelse(is.na(abund), 0, 1)) %>% 
+  filter(SampleID %in% names(grpin)) %>% 
+  spread(FinalID, abund, fill = 0) %>% 
+  data.frame(stringsAsFactors = F) %>% 
+  remove_rownames %>% 
+  column_to_rownames('SampleID') %>% 
+  .[match(rownames(.), names(grpin)), ]
+
+x <- multipatt(abuin, grpin, max.order = 1)
+
+summary(x)
+
+```
+
+
