@@ -255,3 +255,68 @@ taxain_gen <- taxain %>%
 
 # save
 save(taxain_gen, file = 'data/taxain_gen.RData', compress = 'xz')
+
+
+######
+# create a genus level trait table, must export to ASCI package genus branch
+
+data(taxain)
+
+# add a complete genus column to the traits lookup table
+# select only the trait categories used in selected metrics
+x <- pmmilkup$traits %>%
+  dplyr::select(Phylum, Class, Order, Family, Genus1, FinalIDassigned, everything()) %>% 
+  dplyr::select(-orig.FinalID, -AlgaeList) %>% 
+  mutate_if(is.factor, as.character) %>% 
+  rowwise() %>% 
+  mutate(Genus1 = do({
+    
+    # use genus1 if not empty
+    if(Genus1 != '')
+      return(Genus1)
+    
+    chk <- c(Phylum, Class, Order, Family, Genus1)
+    
+    # get first of FinalIDassigned if all higher taxa cats are empty
+    if(all(chk == '')){
+      
+      out <- strsplit(FinalIDassigned, ' ')[[1]][1]
+      
+      # get last non-empty cat  
+    } else {
+      
+      out <- chk[chk != ''] %>% rev %>% .[1]
+      
+    }
+    
+    return(out)
+    
+  })
+  ) %>% 
+  dplyr::select(-Phylum, -Class, -Order, -Family) %>% 
+  unique %>% 
+  gather('trait', 'est', -Genus1, -FinalIDassigned) %>% 
+  rename(FinalID = FinalIDassigned)
+
+# join species level data with genus traits to summarize counts by data dist
+to_summ <- taxain %>% 
+  left_join(x, by = 'FinalID') %>% 
+  mutate(
+    Genus1 = ifelse(is.na(Genus1), gsub(' .*$', '', FinalID), Genus1),
+    est = ifelse(est %in% '', NA, est)
+  )
+
+# summarize trait counts by data dist, get those with greater than .75, spread
+traits_gen <- to_summ %>% 
+  group_by(Genus1, trait, est) %>% 
+  summarise(n = length(est)) %>% 
+  group_by(Genus1, trait) %>% 
+  mutate(prp = n / sum(n)) %>% 
+  group_by(Genus1, trait) %>% 
+  filter(prp > 0.75) %>% 
+  ungroup %>% 
+  dplyr::select(-prp, -n) %>% 
+  spread(trait, est) %>% 
+  rename(FinalIDassigned = Genus1)
+
+# save(traits_gen, file = 'C:/Users/Marcus.SCCWRP2K/Desktop/traits_gen.RData', compress = 'xz')

@@ -1,20 +1,25 @@
 ---
+title: Genus-level ASCI
 output: 
   html_document:
     code_folding: hide
 self_contained: yes
 ---
 
-```{r}
+* Summarize traits from selected metrics by genus
+* Uses occurrence of species grouped by genus in development (statewide) dataset
+
+```{r, warning = F, message = F}
 library(tidyverse)
 library(ASCI)
 
 data(taxain)
 
-# create a complete genus column to the traits lookup table
+# add a complete genus column to the traits lookup table
 # select only the trait categories used in selected metrics
 x <- pmmilkup$traits %>%
-  dplyr::select(Phylum, Class, Order, Family, Genus1, FinalIDassigned, Salinity, Motility, BCG, IndicatorClass_TP, IndicatorClass_DOC, Green, TrophicState, ZHR) %>% 
+  dplyr::select(Phylum, Class, Order, Family, Genus1, FinalIDassigned, everything()) %>% 
+  dplyr::select(-orig.FinalID, -AlgaeList) %>% 
   mutate_if(is.factor, as.character) %>% 
   rowwise() %>% 
   mutate(Genus1 = do({
@@ -30,7 +35,7 @@ x <- pmmilkup$traits %>%
       
       out <- strsplit(FinalIDassigned, ' ')[[1]][1]
       
-    # get last non-empty cat  
+      # get last non-empty cat  
     } else {
       
       out <- chk[chk != ''] %>% rev %>% .[1]
@@ -52,12 +57,29 @@ to_summ <- taxain %>%
   mutate(
     Genus1 = ifelse(is.na(Genus1), gsub(' .*$', '', FinalID), Genus1),
     est = ifelse(est %in% '', NA, est)
-    )
+  )
 
 # summarize trait counts by data dist
 traits_gen <- to_summ %>% 
   group_by(Genus1, trait, est) %>% 
-  summarise(n = length(est))
+  summarise(n = length(est)) %>% 
+  group_by(Genus1, trait) %>% 
+  mutate(prp = n / sum(n))
 
+print(tbl_df(traits_gen), n = 30)
+```
+
+* Traits are assigned to the genus level if more than 75% of species in the genus have a given trait, otherwise NA.  Assignments at higher taxonomic resolution (e.g., family) remain the same.
+
+```{r}
+traits_gen <- traits_gen %>% 
+  group_by(Genus1, trait) %>% 
+  filter(prp > 0.75) %>% 
+  ungroup %>% 
+  dplyr::select(-prp, -n) %>% 
+  spread(trait, est) %>% 
+  rename(FinalIDassigned = Genus1)
+
+head(traits_gen)
 ```
 
