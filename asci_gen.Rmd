@@ -1,0 +1,63 @@
+---
+output: 
+  html_document:
+    code_folding: hide
+self_contained: yes
+---
+
+```{r}
+library(tidyverse)
+library(ASCI)
+
+data(taxain)
+
+# create a complete genus column to the traits lookup table
+# select only the trait categories used in selected metrics
+x <- pmmilkup$traits %>%
+  dplyr::select(Phylum, Class, Order, Family, Genus1, FinalIDassigned, Salinity, Motility, BCG, IndicatorClass_TP, IndicatorClass_DOC, Green, TrophicState, ZHR) %>% 
+  mutate_if(is.factor, as.character) %>% 
+  rowwise() %>% 
+  mutate(Genus1 = do({
+    
+    # use genus1 if not empty
+    if(Genus1 != '')
+      return(Genus1)
+    
+    chk <- c(Phylum, Class, Order, Family, Genus1)
+    
+    # get first of FinalIDassigned if all higher taxa cats are empty
+    if(all(chk == '')){
+      
+      out <- strsplit(FinalIDassigned, ' ')[[1]][1]
+      
+    # get last non-empty cat  
+    } else {
+      
+      out <- chk[chk != ''] %>% rev %>% .[1]
+      
+    }
+    
+    return(out)
+    
+  })
+  ) %>% 
+  dplyr::select(-Phylum, -Class, -Order, -Family) %>% 
+  unique %>% 
+  gather('trait', 'est', -Genus1, -FinalIDassigned) %>% 
+  rename(FinalID = FinalIDassigned)
+
+# join species level data with genus traits to summarize counts by data dist
+to_summ <- taxain %>% 
+  left_join(x, by = 'FinalID') %>% 
+  mutate(
+    Genus1 = ifelse(is.na(Genus1), gsub(' .*$', '', FinalID), Genus1),
+    est = ifelse(est %in% '', NA, est)
+    )
+
+# summarize trait counts by data dist
+traits_gen <- to_summ %>% 
+  group_by(Genus1, trait, est) %>% 
+  summarise(n = length(est))
+
+```
+
