@@ -267,43 +267,108 @@ head(traits_gen)</code></pre>
 </ul>
 <pre class="r"><code>library(tidyverse)
 library(indicspecies)
+library(ASCI)
 
-data(taxain)
+data(taxain_gen)
 data(sitcat)
 
-indicators &lt;- pmmilkup$indicators 
-
+##
 # groups for indic
 grpin &lt;- sitcat %&gt;% 
   filter(cls %in% c('int', 'rc', 'str')) %&gt;% 
   mutate(
     cls = fct_recode(cls, Intermediate = 'int',  Reference = 'rc', Stressed = 'str'),
     cls = as.character(cls)
-    ) %&gt;% 
+  ) %&gt;% 
   dplyr::select(-psa) %&gt;% 
-  filter(SampleID %in% taxain$SampleID) %&gt;% 
   spread(SampleID, cls) %&gt;% 
   unlist
 
-# filter taxonomy data by sites in dev dataset, make wide format for indic  
-abuin &lt;- taxain %&gt;% 
+##
+# filter taxonomy data by sites in dev dataset
+
+# format abundance ests
+abuin &lt;- taxain_gen %&gt;% 
   dplyr::select(SampleID, FinalID, BAResult, Result) %&gt;% 
-  mutate(abund = as.numeric(pmax(BAResult, Result, na.rm = T))) %&gt;% 
+  mutate(
+    abund = as.numeric(pmax(BAResult, Result, na.rm = T))
+  ) %&gt;% # combine abundance 
   dplyr::select(-BAResult, -Result) %&gt;% 
   group_by(SampleID, FinalID) %&gt;% 
-  summarise(abund = sum(abund, na.rm = T)) %&gt;% 
-  ungroup %&gt;% 
-  mutate(abund = ifelse(is.na(abund), 0, 1)) %&gt;% 
-  filter(SampleID %in% names(grpin)) %&gt;% 
+  summarise(abund = sum(abund, na.rm = T)) %&gt;%
+  ungroup
+
+# make wide format, location to rowid
+abuin &lt;- abuin %&gt;% 
   spread(FinalID, abund, fill = 0) %&gt;% 
   data.frame(stringsAsFactors = F) %&gt;% 
   remove_rownames %&gt;% 
-  column_to_rownames('SampleID') %&gt;% 
+  column_to_rownames('SampleID')
+
+##
+# make sure sites match between grpin and abuin, order is the same
+grpin &lt;- grpin[names(grpin) %in% rownames(abuin)]
+abuin &lt;- abuin %&gt;% 
+  .[rownames(.) %in% names(grpin), ] %&gt;% 
   .[match(rownames(.), names(grpin)), ]
 
-x &lt;- multipatt(abuin, grpin, max.order = 1)
+##
+# run indicator analysis
+res &lt;- multipatt(abuin, grpin, duleg = T, control = how(nperm = 999))
 
-summary(x)</code></pre>
+# the A value describes the affinity of a species for each group
+# this sums to one for each species across the groups
+# it indicates which group a species is most likely to belong
+# the B value describes the proportion of sites within a group that have a species, if found in the group
+# the final stat value for indic analysis considers A and B
+# multipatt returns a pvalue for each species
+# the species indicators can be further selected by filtering with an A or B threshold
+# the coverage function describes the proportion of sites in each group where one or
+# indicators are found for a given threshold, with A = 0 being the default
+# using a more conservative, larger A will remove indicator species but this can be done
+# up to a threshold until coverage begins to decline
+
+# table of indicator species by pvalue
+indic &lt;- res$sign %&gt;%
+  rownames_to_column('FinalID') %&gt;% 
+  filter(p.value &lt; 0.05) %&gt;% 
+  mutate(designation = factor(index, 
+                              levels = c('1', '2', '3'), 
+                              labels = c('Intermediate', 'Reference', 'Stressed'))
+         
+  ) %&gt;% 
+  select(FinalID, designation, stat, p.value)
+
+# all a values
+aval &lt;- res$A %&gt;% 
+  data.frame %&gt;% 
+  rownames_to_column('FinalID') %&gt;% 
+  gather('designation', 'aval', -FinalID)
+
+# find maximum a values without decreasing coverage
+chks &lt;- seq(0, 1, by = 0.005)
+toplo &lt;- sapply(chks, function(At) coverage(x = abuin, y = res, At = At)) %&gt;% 
+  t %&gt;% 
+  data.frame %&gt;% 
+  mutate(chks = chks) %&gt;% 
+  gather('designation', 'cvg', -chks)
+athr &lt;- toplo %&gt;% 
+  group_by(designation) %&gt;%
+  filter(cvg == max(cvg)) %&gt;% 
+  filter(chks == max(chks)) %&gt;% 
+  select(-cvg) %&gt;% 
+  ungroup
+ggplot(toplo, aes(x = chks, y = cvg, group = designation, colour = designation)) +
+  geom_vline(data = athr, aes(xintercept = chks, colour = designation), linetype = 'dashed') +
+  scale_x_continuous('At') + 
+  geom_line() +
+  theme_bw()
+
+# join indic with a val, a threshold
+indic &lt;- indic %&gt;% 
+  left_join(aval, by = c('FinalID', 'designation')) %&gt;% 
+  left_join(athr, by = c('designation')) %&gt;% 
+  filter(aval &gt;= chks)</code></pre>
 
 
 

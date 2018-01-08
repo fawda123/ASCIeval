@@ -90,13 +90,8 @@ library(tidyverse)
 library(indicspecies)
 library(ASCI)
 
-data(taxain)
+data(taxain_gen)
 data(sitcat)
-
-indicators <- pmmilkup$indicators %>% 
-  rename(FinalID = FinalIDassigned) %>% 
-  group_by(designation) %>% 
-  nest(.key = 'oldind')
 
 ##
 # groups for indic
@@ -114,24 +109,15 @@ grpin <- sitcat %>%
 # filter taxonomy data by sites in dev dataset
 
 # format abundance ests
-abuin <- taxain %>% 
+abuin <- taxain_gen %>% 
   dplyr::select(SampleID, FinalID, BAResult, Result) %>% 
   mutate(
     abund = as.numeric(pmax(BAResult, Result, na.rm = T))
-    ) %>% # combine abundance 
+  ) %>% # combine abundance 
   dplyr::select(-BAResult, -Result) %>% 
   group_by(SampleID, FinalID) %>% 
   summarise(abund = sum(abund, na.rm = T)) %>%
   ungroup
-
-# remove species that are not ided appropriately
-# some species have trailing spaces as duplicates, these are changed
-abuin <- abuin %>% 
-  filter(!grepl('\\ssp\\s|\\ssp\\.\\s|[0-9]+|\\(|\\)', FinalID)) %>% 
-  mutate(nval = sapply(strsplit(FinalID, "\\s+"), length)) %>% 
-  filter(nval <= 2) %>% 
-  select(-nval) %>% 
-  mutate(FinalID = gsub('\\.+$', '', FinalID))
 
 # make wide format, location to rowid
 abuin <- abuin %>% 
@@ -168,10 +154,10 @@ indic <- res$sign %>%
   rownames_to_column('FinalID') %>% 
   filter(p.value < 0.05) %>% 
   mutate(designation = factor(index, 
-                        levels = c('1', '2', '3'), 
-                        labels = c('Intermediate', 'Reference', 'Stressed'))
+                              levels = c('1', '2', '3'), 
+                              labels = c('Intermediate', 'Reference', 'Stressed'))
          
-         ) %>% 
+  ) %>% 
   select(FinalID, designation, stat, p.value)
 
 # all a values
@@ -185,43 +171,25 @@ chks <- seq(0, 1, by = 0.005)
 toplo <- sapply(chks, function(At) coverage(x = abuin, y = res, At = At)) %>% 
   t %>% 
   data.frame %>% 
-  mutate(athr = athr) %>% 
-  gather('designation', 'cvg', -athr)
+  mutate(chks = chks) %>% 
+  gather('designation', 'cvg', -chks)
 athr <- toplo %>% 
   group_by(designation) %>%
   filter(cvg == max(cvg)) %>% 
-  filter(athr == max(athr)) %>% 
+  filter(chks == max(chks)) %>% 
   select(-cvg) %>% 
   ungroup
-# ggplot(toplo, aes(x = aval, y = cvg, group = grp, colour = grp)) + 
-#   geom_vline(data = athr, aes(xintercept = aval, colour = grp), linetype = 'dashed') + 
-#   geom_line() + 
-#   theme_bw()
+ggplot(toplo, aes(x = chks, y = cvg, group = designation, colour = designation)) +
+  geom_vline(data = athr, aes(xintercept = chks, colour = designation), linetype = 'dashed') +
+  scale_x_continuous('At') + 
+  geom_line() +
+  theme_bw()
 
 # join indic with a val, a threshold
 indic <- indic %>% 
   left_join(aval, by = c('FinalID', 'designation')) %>% 
   left_join(athr, by = c('designation')) %>% 
-  filter(aval >= athr)
-  
-# check old indicators with new
-chk <- indic %>% 
-  group_by(designation) %>% 
-  nest(.key = 'newind') %>% 
-  full_join(indicators, by = 'designation') %>% 
-  mutate(
-    newind = pmap(list(newind, oldind), function(newind, oldind){
-      
-      newind <- newind %>% 
-        mutate(chk = ifelse(FinalID %in% oldind$FinalID, T, F)) %>% 
-        arrange(-stat)
-      
-      return(newind)
-      
-    })
-  ) %>% 
-  select(-oldind) %>% 
-  unnest 
+  filter(aval >= chks)
 
 ```
 
