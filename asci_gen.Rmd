@@ -6,6 +6,10 @@ output:
 self_contained: yes
 ---
 
+```{r}
+knitr::opts_chunk$set(message = F, warning = F)
+```
+
 * Summarize traits from selected metrics by genus
 * Uses occurrence of species grouped by genus in development (statewide) dataset
 
@@ -85,7 +89,7 @@ head(traits_gen)
 
 * Indicator species analysis:
 
-```{r, eval = F}
+```{r, eval = T}
 library(tidyverse)
 library(indicspecies)
 library(ASCI)
@@ -191,6 +195,12 @@ indic <- indic %>%
   left_join(athr, by = c('designation')) %>% 
   filter(aval >= chks)
 
+indic
+
+# indicators <- indic %>% 
+#   dplyr::select(FinalID, designation) %>% 
+#   rename(FinalIDassigned = FinalID)
+# save(indicators, file = 'C:/Users/Marcus.SCCWRP2K/Desktop/indicators.RData', compress = 'xz')
 ```
 
 

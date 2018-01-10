@@ -139,6 +139,7 @@ $(document).ready(function () {
 </div>
 
 
+<pre class="r"><code>knitr::opts_chunk$set(message = F, warning = F)</code></pre>
 <ul>
 <li>Summarize traits from selected metrics by genus</li>
 <li>Uses occurrence of species grouped by genus in development (statewide) dataset</li>
@@ -201,38 +202,38 @@ traits_gen &lt;- to_summ %&gt;%
 
 print(tbl_df(traits_gen), n = 30)</code></pre>
 <pre><code>## # A tibble: 10,084 x 5
-##           Genus1                     trait   est     n        prp
-##            &lt;chr&gt;                     &lt;chr&gt; &lt;chr&gt; &lt;int&gt;      &lt;dbl&gt;
-##  1 Achnanthaceae                       BCG     0     2 1.00000000
-##  2 Achnanthaceae                     BCG12  &lt;NA&gt;     2 1.00000000
-##  3 Achnanthaceae                     BCG45  &lt;NA&gt;     2 1.00000000
-##  4 Achnanthaceae                      CRUS  &lt;NA&gt;     2 1.00000000
-##  5 Achnanthaceae                     Green  &lt;NA&gt;     2 1.00000000
-##  6 Achnanthaceae                     Habit  &lt;NA&gt;     2 1.00000000
-##  7 Achnanthaceae             Heterocystous  &lt;NA&gt;     2 1.00000000
-##  8 Achnanthaceae         IndicatorClass_Cu  &lt;NA&gt;     2 1.00000000
-##  9 Achnanthaceae        IndicatorClass_DOC  &lt;NA&gt;     2 1.00000000
-## 10 Achnanthaceae        IndicatorClass_Ref  &lt;NA&gt;     2 1.00000000
-## 11 Achnanthaceae         IndicatorClass_TN  &lt;NA&gt;     2 1.00000000
-## 12 Achnanthaceae         IndicatorClass_TP  &lt;NA&gt;     2 1.00000000
-## 13 Achnanthaceae                  Motility  &lt;NA&gt;     2 1.00000000
-## 14 Achnanthaceae  NitrogenUptakeMetabolism  &lt;NA&gt;     2 1.00000000
-## 15 Achnanthaceae NitrogenUptakeMetabolism2  &lt;NA&gt;     2 1.00000000
-## 16 Achnanthaceae        OxygenRequirements  &lt;NA&gt;     2 1.00000000
-## 17 Achnanthaceae                  Salinity  &lt;NA&gt;     2 1.00000000
-## 18 Achnanthaceae                 Salinity2  &lt;NA&gt;     2 1.00000000
-## 19 Achnanthaceae                 Saprobity  &lt;NA&gt;     2 1.00000000
-## 20 Achnanthaceae            TaxonomicGroup  &lt;NA&gt;     2 1.00000000
-## 21 Achnanthaceae              TrophicState  &lt;NA&gt;     2 1.00000000
-## 22 Achnanthaceae                       ZHR  &lt;NA&gt;     2 1.00000000
-## 23 Achnanthaceae             Zygnemataceae  &lt;NA&gt;     2 1.00000000
-## 24    Achnanthes                       BCG     0    53 0.72602740
-## 25    Achnanthes                       BCG     2     4 0.05479452
-## 26    Achnanthes                       BCG  &lt;NA&gt;    16 0.21917808
-## 27    Achnanthes                     BCG12   yes     4 0.05479452
-## 28    Achnanthes                     BCG12  &lt;NA&gt;    69 0.94520548
-## 29    Achnanthes                     BCG45  &lt;NA&gt;    73 1.00000000
-## 30    Achnanthes                      CRUS  &lt;NA&gt;    73 1.00000000
+##    Genus1        trait                     est       n    prp
+##    &lt;chr&gt;         &lt;chr&gt;                     &lt;chr&gt; &lt;int&gt;  &lt;dbl&gt;
+##  1 Achnanthaceae BCG                       0         2 1.00  
+##  2 Achnanthaceae BCG12                     &lt;NA&gt;      2 1.00  
+##  3 Achnanthaceae BCG45                     &lt;NA&gt;      2 1.00  
+##  4 Achnanthaceae CRUS                      &lt;NA&gt;      2 1.00  
+##  5 Achnanthaceae Green                     &lt;NA&gt;      2 1.00  
+##  6 Achnanthaceae Habit                     &lt;NA&gt;      2 1.00  
+##  7 Achnanthaceae Heterocystous             &lt;NA&gt;      2 1.00  
+##  8 Achnanthaceae IndicatorClass_Cu         &lt;NA&gt;      2 1.00  
+##  9 Achnanthaceae IndicatorClass_DOC        &lt;NA&gt;      2 1.00  
+## 10 Achnanthaceae IndicatorClass_Ref        &lt;NA&gt;      2 1.00  
+## 11 Achnanthaceae IndicatorClass_TN         &lt;NA&gt;      2 1.00  
+## 12 Achnanthaceae IndicatorClass_TP         &lt;NA&gt;      2 1.00  
+## 13 Achnanthaceae Motility                  &lt;NA&gt;      2 1.00  
+## 14 Achnanthaceae NitrogenUptakeMetabolism  &lt;NA&gt;      2 1.00  
+## 15 Achnanthaceae NitrogenUptakeMetabolism2 &lt;NA&gt;      2 1.00  
+## 16 Achnanthaceae OxygenRequirements        &lt;NA&gt;      2 1.00  
+## 17 Achnanthaceae Salinity                  &lt;NA&gt;      2 1.00  
+## 18 Achnanthaceae Salinity2                 &lt;NA&gt;      2 1.00  
+## 19 Achnanthaceae Saprobity                 &lt;NA&gt;      2 1.00  
+## 20 Achnanthaceae TaxonomicGroup            &lt;NA&gt;      2 1.00  
+## 21 Achnanthaceae TrophicState              &lt;NA&gt;      2 1.00  
+## 22 Achnanthaceae ZHR                       &lt;NA&gt;      2 1.00  
+## 23 Achnanthaceae Zygnemataceae             &lt;NA&gt;      2 1.00  
+## 24 Achnanthes    BCG                       0        53 0.726 
+## 25 Achnanthes    BCG                       2         4 0.0548
+## 26 Achnanthes    BCG                       &lt;NA&gt;     16 0.219 
+## 27 Achnanthes    BCG12                     yes       4 0.0548
+## 28 Achnanthes    BCG12                     &lt;NA&gt;     69 0.945 
+## 29 Achnanthes    BCG45                     &lt;NA&gt;     73 1.00  
+## 30 Achnanthes    CRUS                      &lt;NA&gt;     73 1.00  
 ## # ... with 1.005e+04 more rows</code></pre>
 <ul>
 <li>Traits are assigned to the genus level if more than 75% of species in the genus have a given trait, otherwise NA. Assignments at higher taxonomic resolution (e.g., family) remain the same.</li>
@@ -247,20 +248,18 @@ print(tbl_df(traits_gen), n = 30)</code></pre>
 
 head(traits_gen)</code></pre>
 <pre><code>## # A tibble: 6 x 25
-##    FinalIDassigned   BCG BCG12 BCG45  CRUS Green Habit Heterocystous
-##              &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;         &lt;chr&gt;
-## 1    Achnanthaceae     0  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;          &lt;NA&gt;
-## 2       Achnanthes  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;    BN          &lt;NA&gt;
-## 3 Achnanthidiaceae     0  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;          &lt;NA&gt;
-## 4    Achnanthidium  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;    BN          &lt;NA&gt;
-## 5      Actinastrum     0  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;   Yes  &lt;NA&gt;            No
-## 6     Actinocyclus     5  &lt;NA&gt;   yes  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;          &lt;NA&gt;
-## # ... with 17 more variables: IndicatorClass_Cu &lt;chr&gt;,
-## #   IndicatorClass_DOC &lt;chr&gt;, IndicatorClass_Ref &lt;chr&gt;,
-## #   IndicatorClass_TN &lt;chr&gt;, IndicatorClass_TP &lt;chr&gt;, Motility &lt;chr&gt;,
+##   Final~ BCG   BCG12 BCG45 CRUS  Green Habit Hete~ Indi~ Indi~ Indi~ Indi~
+##   &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;
+## 1 Achna~ 0     &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+## 2 Achna~ &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  BN    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+## 3 Achna~ 0     &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+## 4 Achna~ &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  BN    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+## 5 Actin~ 0     &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  Yes   &lt;NA&gt;  No    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+## 6 Actin~ 5     &lt;NA&gt;  yes   &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+## # ... with 13 more variables: IndicatorClass_TP &lt;chr&gt;, Motility &lt;chr&gt;,
 ## #   NitrogenUptakeMetabolism &lt;chr&gt;, NitrogenUptakeMetabolism2 &lt;chr&gt;,
-## #   OxygenRequirements &lt;chr&gt;, Salinity &lt;chr&gt;, Salinity2 &lt;chr&gt;,
-## #   Saprobity &lt;chr&gt;, TaxonomicGroup &lt;chr&gt;, TrophicState &lt;chr&gt;, ZHR &lt;chr&gt;,
+## #   OxygenRequirements &lt;chr&gt;, Salinity &lt;chr&gt;, Salinity2 &lt;chr&gt;, Saprobity
+## #   &lt;chr&gt;, TaxonomicGroup &lt;chr&gt;, TrophicState &lt;chr&gt;, ZHR &lt;chr&gt;,
 ## #   Zygnemataceae &lt;chr&gt;, `&lt;NA&gt;` &lt;chr&gt;</code></pre>
 <ul>
 <li>Indicator species analysis:</li>
@@ -362,13 +361,133 @@ ggplot(toplo, aes(x = chks, y = cvg, group = designation, colour = designation))
   geom_vline(data = athr, aes(xintercept = chks, colour = designation), linetype = 'dashed') +
   scale_x_continuous('At') + 
   geom_line() +
-  theme_bw()
-
-# join indic with a val, a threshold
+  theme_bw()</code></pre>
+<p><img src="data:image/png;base64,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" width="672" /></p>
+<pre class="r"><code># join indic with a val, a threshold
 indic &lt;- indic %&gt;% 
   left_join(aval, by = c('FinalID', 'designation')) %&gt;% 
   left_join(athr, by = c('designation')) %&gt;% 
-  filter(aval &gt;= chks)</code></pre>
+  filter(aval &gt;= chks)
+
+indic</code></pre>
+<pre><code>##                  FinalID  designation       stat p.value      aval  chks
+## 1          Achnanthidium    Reference 0.69458520   0.001 0.5040709 0.500
+## 2            Amphipleura    Reference 0.31459691   0.001 0.5768166 0.500
+## 3                Amphora     Stressed 0.62361825   0.001 0.4819306 0.480
+## 4               Anabaena    Reference 0.40063337   0.036 0.9503039 0.500
+## 5           Asterococcus    Reference 0.20533702   0.002 0.7489004 0.500
+## 6            Aulacoseira    Reference 0.32638696   0.003 0.5676445 0.500
+## 7             Bacillaria     Stressed 0.52494876   0.001 0.7809910 0.480
+## 8              Bacularia     Stressed 0.18889559   0.002 0.9804668 0.480
+## 9             Brachysira    Reference 0.14790372   0.011 0.6276588 0.500
+## 10              Caloneis Intermediate 0.38657119   0.001 0.4166577 0.395
+## 11           Chaetophora    Reference 0.23972624   0.001 0.9319919 0.500
+## 12        Chaetophorales    Reference 0.20036509   0.030 0.5348043 0.500
+## 13          Chamaesiphon    Reference 0.58536689   0.026 0.6487822 0.500
+## 14          Characiopsis     Stressed 0.20643628   0.001 0.7921551 0.480
+## 15    Chlamydomonadopsis     Stressed 0.10524234   0.010 1.0000000 0.480
+## 16             Chlorella     Stressed 0.39370995   0.001 0.9996404 0.480
+## 17           Chlorophyta    Reference 0.37229943   0.029 0.8616727 0.500
+## 18        Chroococcopsis     Stressed 0.34558645   0.007 0.7702016 0.480
+## 19         Chroodactylon    Reference 0.15486517   0.043 0.5963827 0.500
+## 20            Cladophora     Stressed 0.68863857   0.001 0.8789120 0.480
+## 21            Clastidium    Reference 0.16808208   0.003 0.9579856 0.500
+## 22             Cocconeis Intermediate 0.60792119   0.001 0.3991901 0.395
+## 23           Compsopogon     Stressed 0.12216610   0.018 0.9432320 0.480
+## 24             Craticula     Stressed 0.28451614   0.001 0.5220413 0.480
+## 25            Ctenophora     Stressed 0.11475818   0.006 0.9247873 0.480
+## 26           Cyanophanon    Reference 0.08968219   0.014 1.0000000 0.500
+## 27        Cyclostephanos     Stressed 0.16436774   0.040 0.7114412 0.480
+## 28            Cyclotella     Stressed 0.66161046   0.001 0.6763921 0.480
+## 29       Cylindrospermum Intermediate 0.17502764   0.018 0.6192580 0.395
+## 30          Cymatopleura     Stressed 0.20797057   0.001 0.7593086 0.480
+## 31              Cymbella Intermediate 0.41496568   0.001 0.5296914 0.395
+## 32           Cymbopleura    Reference 0.18228056   0.001 0.8262249 0.500
+## 33              Delicata Intermediate 0.11723785   0.010 0.9724384 0.395
+## 34             Denticula     Stressed 0.49519751   0.001 0.7947662 0.480
+## 35             Diadesmis     Stressed 0.28134082   0.001 0.5684600 0.480
+## 36            Diatomella    Reference 0.08429872   0.031 0.8835467 0.500
+## 37         Didymosphenia    Reference 0.13719404   0.017 0.7020683 0.500
+## 38             Diploneis    Reference 0.31411433   0.009 0.5183534 0.500
+## 39             Encyonema Intermediate 0.40323189   0.003 0.4601466 0.395
+## 40           Encyonopsis    Reference 0.35257759   0.001 0.5209886 0.500
+## 41            Entomoneis     Stressed 0.26706422   0.001 0.7270375 0.480
+## 42               Eolimna     Stressed 0.53105773   0.001 0.4937343 0.480
+## 43              Euastrum    Reference 0.11577921   0.001 1.0000000 0.500
+## 44        Euglenophyceae     Stressed 0.09743547   0.017 1.0000000 0.480
+## 45               Eunotia    Reference 0.37444399   0.001 0.7471099 0.500
+## 46              Fallacia     Stressed 0.40134519   0.001 0.5988310 0.480
+## 47            Fragilaria    Reference 0.56484762   0.001 0.5409396 0.500
+## 48        Fragilariforma    Reference 0.15481306   0.032 0.7449768 0.500
+## 49          Geitlerinema     Stressed 0.24184772   0.046 0.7701226 0.480
+## 50           Glaucospira     Stressed 0.11931387   0.019 0.9996695 0.480
+## 51            Gomphoneis    Reference 0.40057058   0.001 0.5593494 0.500
+## 52            Gomphonema    Reference 0.68899524   0.001 0.5162347 0.500
+## 53        Gomphosphaeria Intermediate 0.08406627   0.034 1.0000000 0.395
+## 54         Gomphosphenia    Reference 0.23661247   0.001 0.7458063 0.500
+## 55             Gyrosigma     Stressed 0.29243187   0.001 0.6212226 0.480
+## 56            Halamphora     Stressed 0.65033282   0.001 0.8880183 0.480
+## 57               Hannaea    Reference 0.33650188   0.001 0.8281588 0.500
+## 58            Hippodonta     Stressed 0.39684653   0.001 0.6505352 0.480
+## 59            Homeothrix     Stressed 0.11240082   0.024 0.9980816 0.480
+## 60          Hydrodictyon     Stressed 0.14557068   0.019 0.7048737 0.480
+## 61             Hydrosera     Stressed 0.08894601   0.021 1.0000000 0.480
+## 62             Karayevia    Reference 0.32999692   0.001 0.6249068 0.500
+## 63              Kolbesia     Stressed 0.20058708   0.002 0.7946447 0.480
+## 64              Luticola     Stressed 0.31181395   0.002 0.8417542 0.480
+## 65               Lyngbya     Stressed 0.20010823   0.001 0.7908553 0.480
+## 66              Melosira Intermediate 0.43023493   0.008 0.4740624 0.395
+## 67              Meridion    Reference 0.42347531   0.001 0.6895937 0.500
+## 68          Merismopedia     Stressed 0.43658151   0.001 0.9955484 0.480
+## 69         Monoraphidium     Stressed 0.45299358   0.001 0.7812555 0.480
+## 70          Naviculaceae Intermediate 0.15955853   0.012 0.5763900 0.395
+## 71           Naviculales     Stressed 0.20656440   0.023 0.4815485 0.480
+## 72             Nitzschia     Stressed 0.69492172   0.001 0.4844493 0.480
+## 73                Nostoc    Reference 0.48117882   0.001 0.5536015 0.500
+## 74          Nostochopsis Intermediate 0.09398023   0.034 0.9998144 0.395
+## 75              Oocystis     Stressed 0.39445759   0.002 0.7804537 0.480
+## 76              Opephora Intermediate 0.12796684   0.031 0.7723783 0.395
+## 77           Ophiocytium    Reference 0.15185484   0.001 0.9557045 0.500
+## 78          Oscillatoria     Stressed 0.23620386   0.010 0.9794642 0.480
+## 79          Palmellopsis     Stressed 0.11243663   0.024 0.9987177 0.480
+## 80           Parlibellus     Stressed 0.22583278   0.033 0.4810788 0.480
+## 81            Pediastrum     Stressed 0.48125185   0.001 0.9629823 0.480
+## 82                Phacus     Stressed 0.15187349   0.015 0.6941634 0.480
+## 83              Platessa     Stressed 0.19292600   0.001 0.6918623 0.480
+## 84           Pleurocapsa     Stressed 0.33824349   0.003 0.8817838 0.480
+## 85          Pleurocladia    Reference 0.10076663   0.009 0.9468524 0.500
+## 86            Protoderma     Stressed 0.25770238   0.001 0.9993201 0.480
+## 87         Psammothidium    Reference 0.32731090   0.001 0.6660066 0.500
+## 88         Pseudanabaena    Reference 0.20416327   0.049 0.9717266 0.500
+## 89    Pseudocharaciopsis     Stressed 0.22327820   0.001 0.9547635 0.480
+## 90      Pseudostaurosira     Stressed 0.52687670   0.001 0.5398234 0.480
+## 91  Pseudostaurosiropsis     Stressed 0.08894601   0.038 1.0000000 0.480
+## 92          Puncticulata Intermediate 0.11173690   0.017 0.8833233 0.395
+## 93            Quadrigula    Reference 0.09500637   0.017 0.8416940 0.500
+## 94              Reimeria Intermediate 0.46148046   0.001 0.4565824 0.395
+## 95          Rossithidium Intermediate 0.20340705   0.006 0.5711689 0.395
+## 96           Scenedesmus     Stressed 0.72163788   0.001 0.9943236 0.480
+## 97             Scytonema Intermediate 0.13940814   0.031 1.0000000 0.395
+## 98            Sellaphora     Stressed 0.41811248   0.007 0.4845833 0.480
+## 99             Spirogyra Intermediate 0.52496757   0.005 0.9999005 0.395
+## 100          Stauroforma    Reference 0.08968219   0.013 1.0000000 0.500
+## 101           Staurosira     Stressed 0.44373502   0.001 0.6316817 0.480
+## 102            Surirella     Stressed 0.50833201   0.001 0.5895657 0.480
+## 103        Synechococcus     Stressed 0.19939440   0.001 0.8973978 0.480
+## 104           Tabellaria    Reference 0.22373936   0.001 0.6915600 0.500
+## 105            Tabularia     Stressed 0.47059614   0.001 0.6333175 0.480
+## 106           Tetraedron     Stressed 0.19439915   0.001 0.9553572 0.480
+## 107        Thalassiosira     Stressed 0.21004351   0.001 0.7337566 0.480
+## 108          Tolypothrix    Reference 0.34104273   0.001 0.5862660 0.500
+## 109         Tryblionella     Stressed 0.57644866   0.001 0.7865514 0.480
+## 110            Tychonema     Stressed 0.31430277   0.004 0.9459530 0.480
+## 111              Ulnaria    Reference 0.08968219   0.017 1.0000000 0.500
+## 112                 Ulva     Stressed 0.28173253   0.001 0.7838105 0.480
+## 113            Vaucheria     Stressed 0.39776301   0.017 0.9999214 0.480</code></pre>
+<pre class="r"><code># indicators &lt;- indic %&gt;% 
+#   dplyr::select(FinalID, designation) %&gt;% 
+#   rename(FinalIDassigned = FinalID)
+# save(indicators, file = 'C:/Users/Marcus.SCCWRP2K/Desktop/indicators.RData', compress = 'xz')</code></pre>
 
 
 
