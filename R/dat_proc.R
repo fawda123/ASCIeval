@@ -63,16 +63,16 @@ library(ASCI)
 # 
 # # final and save
 # dat <- chkinp(algprc, envprc)
-# taxain <- dat$taxa
+# taxain_spp <- dat$taxa
 # sitein <- dat$site
 # 
-# save(taxain, file = 'data/taxain.RData')
+# save(taxain_spp, file = 'data/taxain_spp.RData')
 # save(sitein, file = 'data/sitein.RData')
 
 # get asci object and save
-data(taxain)
+data(taxain_spp)
 data(sitein)
-pkgdat <- ASCI(taxain, sitein)
+pkgdat <- ASCI(taxain_spp, sitein)
 save(pkgdat, file = 'data/pkgdat.RData', compress = 'xz')
 
 ######
@@ -207,12 +207,13 @@ aldat <- read.csv('ignore/tblAlgaeIBI.csv', stringsAsFactors = FALSE) %>%
 save(aldat, file = 'data/aldat.RData', compress = 'xz')
 
 ######
-# save a copy of taxain processed to genus or higher
+# save a copy of taxain_spp processed to genus or higher
 
-data(taxain)
+data(taxain_spp)
+data(pmmilkup_spp)
 
 # this creates a lookup table from pmmilkup$traits in asci package 
-x <- pmmilkup$traits %>%
+x <- pmmilkup_spp$traits %>%
   dplyr::select(Phylum, Class, Order, Family, Genus1, FinalIDassigned) %>% 
   mutate_if(is.factor, as.character) %>% 
   rowwise() %>% 
@@ -246,21 +247,87 @@ x <- pmmilkup$traits %>%
     Genus = Genus2
     )
 
-# join taxain with key, then use strsplit
-taxain_gen <- taxain %>% 
+# join taxain_spp with key, then use strsplit
+taxain_gen <- taxain_spp %>% 
   left_join(x, by = 'FinalID') %>% 
   mutate(Genus = ifelse(is.na(Genus), gsub(' .*$', '', FinalID), Genus)) %>% 
   dplyr::select(-FinalID) %>% 
-  rename(FinalID = Genus)
+  rename(FinalID = Genus) %>% 
+  group_by(SampleID, StationCode, SampleDate, Replicate, SampleTypeCode, FinalID) %>% 
+  summarise(
+    Result = sum(Result, na.rm = T), 
+    Result = ifelse(Result == 0, NA, Result),
+    BAResult = sum(BAResult, na.rm = T),
+    BAResult = ifelse(BAResult == 0, NA, BAResult)
+  ) %>% 
+  dplyr::select(SampleID, StationCode, SampleDate, Replicate, SampleTypeCode, BAResult, Result, FinalID)
 
 # save
 save(taxain_gen, file = 'data/taxain_gen.RData', compress = 'xz')
 
+######
+# create genus level demo algae taxonomy data
+
+data(demo_algae_tax_spp)
+data(pmmilkup_spp)
+
+# this creates a lookup table from pmmilkup$traits in asci package 
+x <- pmmilkup_spp$traits %>%
+  dplyr::select(Phylum, Class, Order, Family, Genus1, FinalIDassigned) %>% 
+  mutate_if(is.factor, as.character) %>% 
+  rowwise() %>% 
+  mutate(Genus2 = do({
+    
+    # use genus1 if not empty
+    if(Genus1 != '')
+      return(Genus1)
+    
+    chk <- c(Phylum, Class, Order, Family, Genus1)
+    
+    # get first of FinalIDassigned if all higher taxa cats are empty
+    if(all(chk == '')){
+      
+      out <- strsplit(FinalIDassigned, ' ')[[1]][1]
+      
+      # get last non-empty cat  
+    } else {
+      
+      out <- chk[chk != ''] %>% rev %>% .[1]
+      
+    }
+    
+    return(out)
+    
+  })
+  ) %>% 
+  dplyr::select(FinalIDassigned, Genus2) %>% 
+  rename(
+    FinalID = FinalIDassigned, 
+    Genus = Genus2
+  )
+
+# join taxain_spp with key, then use strsplit
+demo_algae_tax_gen <- demo_algae_tax_spp %>% 
+  left_join(x, by = 'FinalID') %>% 
+  mutate(Genus = ifelse(is.na(Genus), gsub(' .*$', '', FinalID), Genus)) %>% 
+  dplyr::select(-FinalID) %>% 
+  rename(FinalID = Genus) %>% 
+  group_by(StationCode, SampleDate, Replicate, CollectionMethodCode, SampleTypeCode, FinalID) %>% 
+  summarise(
+    Result = sum(Result, na.rm = T), 
+    Result = ifelse(Result == 0, NA, Result),
+    BAResult = sum(BAResult, na.rm = T),
+    BAResult = ifelse(BAResult == 0, NA, BAResult)
+  ) %>% 
+  dplyr::select(StationCode, SampleDate, Replicate, CollectionMethodCode, SampleTypeCode, BAResult, Result, FinalID)
+
+# save
+save(demo_algae_tax_gen, file = 'data/demo_algae_tax_gen.RData', compress = 'xz')
 
 ######
 # create a genus level trait table, must export to ASCI package genus branch
 
-data(taxain)
+data(taxain_spp)
 
 # add a complete genus column to the traits lookup table
 # select only the trait categories used in selected metrics
@@ -299,7 +366,7 @@ x <- pmmilkup$traits %>%
   rename(FinalID = FinalIDassigned)
 
 # join species level data with genus traits to summarize counts by data dist
-to_summ <- taxain %>% 
+to_summ <- taxain_spp %>% 
   left_join(x, by = 'FinalID') %>% 
   mutate(
     Genus1 = ifelse(is.na(Genus1), gsub(' .*$', '', FinalID), Genus1),
@@ -320,3 +387,137 @@ traits_gen <- to_summ %>%
   rename(FinalIDassigned = Genus1)
 
 # save(traits_gen, file = 'C:/Users/Marcus.SCCWRP2K/Desktop/traits_gen.RData', compress = 'xz')
+
+######
+# indicator species analysis at genus level
+library(tidyverse)
+library(indicspecies)
+library(ASCI)
+
+data(taxain_gen)
+data(sitcat)
+
+##
+# groups for indic
+grpin <- sitcat %>% 
+  filter(cls %in% c('int', 'rc', 'str')) %>% 
+  mutate(
+    cls = fct_recode(cls, Intermediate = 'int',  Reference = 'rc', Stressed = 'str'),
+    cls = as.character(cls)
+  ) %>% 
+  dplyr::select(-psa) %>% 
+  spread(SampleID, cls) %>% 
+  unlist
+
+##
+# filter taxonomy data by sites in dev dataset
+
+# format abundance ests
+abuin <- taxain_gen %>% 
+  dplyr::select(SampleID, FinalID, BAResult, Result) %>% 
+  mutate(
+    abund = as.numeric(pmax(BAResult, Result, na.rm = T))
+  ) %>% # combine abundance 
+  dplyr::select(-BAResult, -Result) %>% 
+  group_by(SampleID, FinalID) %>% 
+  summarise(abund = sum(abund, na.rm = T)) %>%
+  ungroup
+
+# make wide format, location to rowid
+abuin <- abuin %>% 
+  spread(FinalID, abund, fill = 0) %>% 
+  data.frame(stringsAsFactors = F) %>% 
+  remove_rownames %>% 
+  column_to_rownames('SampleID')
+
+##
+# make sure sites match between grpin and abuin, order is the same
+grpin <- grpin[names(grpin) %in% rownames(abuin)]
+abuin <- abuin %>% 
+  .[rownames(.) %in% names(grpin), ] %>% 
+  .[match(rownames(.), names(grpin)), ]
+
+##
+# run indicator analysis
+res <- multipatt(abuin, grpin, duleg = T, control = how(nperm = 999))
+
+# the A value describes the affinity of a species for each group
+# this sums to one for each species across the groups
+# it indicates which group a species is most likely to belong
+# the B value describes the proportion of sites within a group that have a species, if found in the group
+# the final stat value for indic analysis considers A and B
+# multipatt returns a pvalue for each species
+# the species indicators can be further selected by filtering with an A or B threshold
+# the coverage function describes the proportion of sites in each group where one or
+# indicators are found for a given threshold, with A = 0 being the default
+# using a more conservative, larger A will remove indicator species but this can be done
+# up to a threshold until coverage begins to decline
+
+# table of indicator species by pvalue
+indic <- res$sign %>%
+  rownames_to_column('FinalID') %>% 
+  filter(p.value < 0.05) %>% 
+  mutate(designation = factor(index, 
+                              levels = c('1', '2', '3'), 
+                              labels = c('Intermediate', 'Reference', 'Stressed'))
+         
+  ) %>% 
+  select(FinalID, designation, stat, p.value)
+
+# all a values
+aval <- res$A %>% 
+  data.frame %>% 
+  rownames_to_column('FinalID') %>% 
+  gather('designation', 'aval', -FinalID)
+
+# find maximum a values without decreasing coverage
+chks <- seq(0, 1, by = 0.005)
+toplo <- sapply(chks, function(At) coverage(x = abuin, y = res, At = At)) %>% 
+  t %>% 
+  data.frame %>% 
+  mutate(chks = chks) %>% 
+  gather('designation', 'cvg', -chks)
+athr <- toplo %>% 
+  group_by(designation) %>%
+  filter(cvg == max(cvg)) %>% 
+  filter(chks == max(chks)) %>% 
+  select(-cvg) %>% 
+  ungroup
+# ggplot(toplo, aes(x = chks, y = cvg, group = designation, colour = designation)) +
+#   geom_vline(data = athr, aes(xintercept = chks, colour = designation), linetype = 'dashed') +
+#   scale_x_continuous('At') + 
+#   geom_line() +
+#   theme_bw()
+
+# join indic with a val, a threshold
+indic <- indic %>% 
+  left_join(aval, by = c('FinalID', 'designation')) %>% 
+  left_join(athr, by = c('designation')) %>% 
+  filter(aval >= chks)
+
+# final
+indicators <- indic %>%
+  dplyr::select(FinalID, designation) %>%
+  rename(FinalIDassigned = FinalID)
+
+# save(indicators, file = 'C:/Users/Marcus.SCCWRP2K/Desktop/indicators.RData', compress = 'xz')
+
+#####
+# estimate raw metrics at genus and species level for algal data
+
+library(tidyverse)
+library(reshape2)
+library(ASCI)
+library(vegan)
+source('R/funcs.R')
+
+data(taxain_gen)
+data(taxain_spp)
+data(sitein)
+data(STE)
+
+rawmet_gen <- pmmifun_hrd(taxain_gen, sitein, res = 'gen')
+rawmet_spp <- pmmifun_hrd(taxain_spp, sitein, res = 'spp')
+
+save(rawmet_gen, file = 'data/rawmet_gen.RData', compress = 'xz')
+save(rawmet_spp, file = 'data/rawmet_spp.RData', compress = 'xz')

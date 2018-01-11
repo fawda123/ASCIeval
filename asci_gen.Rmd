@@ -17,7 +17,7 @@ knitr::opts_chunk$set(message = F, warning = F)
 library(tidyverse)
 library(ASCI)
 
-data(taxain)
+data(taxain_spp)
 
 # add a complete genus column to the traits lookup table
 # select only the trait categories used in selected metrics
@@ -56,7 +56,7 @@ x <- pmmilkup$traits %>%
   rename(FinalID = FinalIDassigned)
 
 # join species level data with genus traits to summarize counts by data dist
-to_summ <- taxain %>% 
+to_summ <- taxain_spp %>% 
   left_join(x, by = 'FinalID') %>% 
   mutate(
     Genus1 = ifelse(is.na(Genus1), gsub(' .*$', '', FinalID), Genus1),
