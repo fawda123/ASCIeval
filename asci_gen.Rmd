@@ -1,8 +1,7 @@
 ---
 title: Genus-level ASCI
 output: 
-  html_document:
-    code_folding: hide
+  html_document
 self_contained: yes
 ---
 
@@ -10,8 +9,9 @@ self_contained: yes
 knitr::opts_chunk$set(message = F, warning = F)
 ```
 
-* Summarize traits from selected metrics by genus
-* Uses occurrence of species grouped by genus in development (statewide) dataset
+### Genus traits table
+
+* The existing traits table at the species (or higher) level is formatted to show the genus designation, assigned FinalID (species or higher), trait category, and estimate for the trait.
 
 ```{r, warning = F, message = F}
 library(tidyverse)
@@ -53,16 +53,29 @@ x <- pmmilkup$traits %>%
   dplyr::select(-Phylum, -Class, -Order, -Family) %>% 
   unique %>% 
   gather('trait', 'est', -Genus1, -FinalIDassigned) %>% 
-  rename(FinalID = FinalIDassigned)
+  rename(FinalID = FinalIDassigned) %>% 
+  arrange(Genus1, FinalID, trait)
 
+print(tbl_df(x), n = 30)
+```
+
+* The observed species data is joined with the formatted traits table by FinalID to get counts of species within each genus, i.e., which species in a genus are more common in the dataset
+```{r}
 # join species level data with genus traits to summarize counts by data dist
 to_summ <- taxain_spp %>% 
   left_join(x, by = 'FinalID') %>% 
   mutate(
     Genus1 = ifelse(is.na(Genus1), gsub(' .*$', '', FinalID), Genus1),
     est = ifelse(est %in% '', NA, est)
-  )
+  ) %>% 
+  arrange(Genus1, FinalID, trait) %>% 
+  select(SampleID, Genus1, FinalID, trait, est)
 
+print(tbl_df(to_summ), n = 30)
+```
+
+* The joined data are summarized to count the number of observations for each species in a genus
+```{r}
 # summarize trait counts by data dist
 traits_gen <- to_summ %>% 
   group_by(Genus1, trait, est) %>% 
@@ -74,7 +87,6 @@ print(tbl_df(traits_gen), n = 30)
 ```
 
 * Traits are assigned to the genus level if more than 75% of species in the genus have a given trait, otherwise NA.  Assignments at higher taxonomic resolution (e.g., family) remain the same.
-
 ```{r}
 traits_gen <- traits_gen %>% 
   group_by(Genus1, trait) %>% 
@@ -84,11 +96,13 @@ traits_gen <- traits_gen %>%
   spread(trait, est) %>% 
   rename(FinalIDassigned = Genus1)
 
-head(traits_gen)
+knitr::kable(traits_gen[1:30, ])
 ```
 
-* Indicator species analysis:
+### Indicator genus analysis
 
+* Multipatt function (indicspecies package) requires site categories as a vector and species abundances as a matrix, row.names match for both
+* Sites in development dataset grouped by 'rc', 'int', 'str'
 ```{r, eval = T}
 library(tidyverse)
 library(indicspecies)
@@ -109,6 +123,11 @@ grpin <- sitcat %>%
   spread(SampleID, cls) %>% 
   unlist
 
+print(tbl_df(traits_gen), n = 30)
+```
+
+* Abundance of genera at sites (in long format)
+```{r}
 ##
 # filter taxonomy data by sites in dev dataset
 
@@ -123,6 +142,10 @@ abuin <- taxain_gen %>%
   summarise(abund = sum(abund, na.rm = T)) %>%
   ungroup
 
+print(tbl_df(abuin), n = 30)
+```
+
+```{r}
 # make wide format, location to rowid
 abuin <- abuin %>% 
   spread(FinalID, abund, fill = 0) %>% 
@@ -137,22 +160,29 @@ abuin <- abuin %>%
   .[rownames(.) %in% names(grpin), ] %>% 
   .[match(rownames(.), names(grpin)), ]
 
+```
+
+* Run indicator species analysis, output include:
+  * the A value describes the affinity of a species for each group, this sums to one for each species across the groups, it indicates which group a species is most likely to belong
+  * the B value describes the proportion of sites within a group that have a species, if found in the group
+  * the final stat value for indic analysis considers A and B
+  * multipatt returns a pvalue for each species
+  * the species indicators can be further selected by filtering with an A or B threshold
+  * the coverage function describes the proportion of sites in each group where one or more indicators are found for a given threshold, with A = 0 being the default
+  * using a more conservative, larger A will remove indicator species but this can be done up to a threshold until coverage begins to decline
+
+```{r}
 ##
 # run indicator analysis
 res <- multipatt(abuin, grpin, duleg = T, control = how(nperm = 999))
 
-# the A value describes the affinity of a species for each group
-# this sums to one for each species across the groups
-# it indicates which group a species is most likely to belong
-# the B value describes the proportion of sites within a group that have a species, if found in the group
-# the final stat value for indic analysis considers A and B
-# multipatt returns a pvalue for each species
-# the species indicators can be further selected by filtering with an A or B threshold
-# the coverage function describes the proportion of sites in each group where one or
-# indicators are found for a given threshold, with A = 0 being the default
-# using a more conservative, larger A will remove indicator species but this can be done
-# up to a threshold until coverage begins to decline
+head(res$A)
+head(res$B)
+head(res$sign)
+```
 
+* Significant indicator species
+```{r}
 # table of indicator species by pvalue
 indic <- res$sign %>%
   rownames_to_column('FinalID') %>% 
@@ -164,6 +194,12 @@ indic <- res$sign %>%
   ) %>% 
   select(FinalID, designation, stat, p.value)
 
+dim(indic)
+head(indic)
+```
+
+* Using a conservative selection of indicator species
+```{r}
 # all a values
 aval <- res$A %>% 
   data.frame %>% 
@@ -195,7 +231,7 @@ indic <- indic %>%
   left_join(athr, by = c('designation')) %>% 
   filter(aval >= chks)
 
-indic
+head(indic)
 
 # indicators <- indic %>% 
 #   dplyr::select(FinalID, designation) %>% 
@@ -203,4 +239,15 @@ indic
 # save(indicators, file = 'C:/Users/Marcus.SCCWRP2K/Desktop/indicators.RData', compress = 'xz')
 ```
 
+### Raw metrics
+
+All metrics were estimated for the genus-level data using the new traits table and indicator genera.
+```{r}
+data(rawmet_gen)
+data(rawmet_spp)
+
+dim(rawmet_gen)
+head(rawmet_gen)
+unique(rawmet_gen$met)
+```
 
