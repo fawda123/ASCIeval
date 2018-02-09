@@ -2,45 +2,25 @@
 # calculate pmmi metrics for genera or species
 # this function is similar to the one in the ASCI package except:
 #   option to specify taxonomy resolution
-#   all metrics are estimated and returned, not just best for spp level
-pmmi_calcmetrics_hrd <- function(taxa = c('diatoms', 'sba', 'hybrid'), res = c('gen', 'spp'), tax_dat, stations){
+#   indicators table can be species or genius, from pmmilkup
+#   traits table can be species or genus, from pmmilkup
+#   all metrics are estimated and returned if mets = NULL, otherwise only those supplied to mets
+pmmi_calcmetrics_hrd <- function(taxa = c('diatoms', 'sba', 'hybrid'), tax_dat, stations, indicators, traits, mets = NULL){
   
   # get taxa arg
   taxa <- match.arg(taxa)
   
-  # get res arg
-  res <- match.arg(res)
-  
   # convert taxonomy data to presence/absence
   taxonomy_pa <- as.data.frame(ifelse(tax_dat > 0, 1, 0))
+
+  # indicators
+  indicators <- indicators %>% 
+    mutate(FinalIDassigned = as.character(FinalIDassigned))
   
-  # genera
-  if(res == 'gen'){
-    
-    load(file = 'data/pmmilkup_gen.RData')
-    
-    # indicators
-    indicators <- pmmilkup_gen$indicators %>% 
-      mutate(FinalIDassigned = as.character(FinalIDassigned))
-    
-    # traits
-    traits <- pmmilkup_gen$traits %>% 
-      mutate(FinalIDassigned = as.character(FinalIDassigned))
+  # traits
+  traits <- traits %>% 
+    mutate(FinalIDassigned = as.character(FinalIDassigned))
   
-  # otherwise species
-  } else {
-    
-    load(file = 'data/pmmilkup_spp.RData')
-    
-    # indicators
-    indicators <- pmmilkup_spp$indicators %>% 
-      mutate(FinalIDassigned = as.character(FinalIDassigned))
-    
-    # traits
-    traits <- pmmilkup_spp$traits %>% 
-      mutate(FinalIDassigned = as.character(FinalIDassigned))
-    
-  }
 
   ##################################################################################################################################################################
   # data prep
@@ -241,6 +221,11 @@ pmmi_calcmetrics_hrd <- function(taxa = c('diatoms', 'sba', 'hybrid'), res = c('
   toclc <- met_ls %>% 
     enframe
   
+  # filter mets if provided, otherwise all are calculated
+  if(!is.null(mets))
+    toclc <- toclc %>% 
+      filter(name %in% mets)
+    
   # calculate metrics on station data
   metrics <- stations_combined %>% 
     group_by(SampleID) %>% 
@@ -278,15 +263,16 @@ pmmi_calcmetrics_hrd <- function(taxa = c('diatoms', 'sba', 'hybrid'), res = c('
   if(taxa == 'diatoms'){
     
     required.predictors <- row.names(rf_out_top$importance)
-    required.predictors
     missingpredictors <- setdiff(required.predictors, colnames(stations))
     if (length(missingpredictors) > 0 ) {print(paste("missing predictors", missingpredictors)) }
     stations.predictors<-stations[,required.predictors]
     row.names(stations.predictors) <- stations$SampleID
-    predicted<-predict(rf_out_top, stations.predictors)
-    observed<-metrics[["prop.spp.Salinity.BF"]]
-    resid<-observed-predicted
-    metrics$prop.spp.Salinity.BF<-resid
+    if(is.null(mets) | 'prop.spp.Salinity.BF' %in% mets){
+      predicted<-predict(rf_out_top, stations.predictors)
+      observed<-metrics[["prop.spp.Salinity.BF"]]
+      resid<-observed-predicted
+      metrics$prop.spp.Salinity.BF<-resid
+    }
     
     # Combining With Specialty Metrics
     out = metrics %>% 
@@ -301,7 +287,7 @@ pmmi_calcmetrics_hrd <- function(taxa = c('diatoms', 'sba', 'hybrid'), res = c('
 ######
 # helper function for pmmi_calcmetrics_hrd
 # does data prep and formatting for genera or species level metrics
-pmmifun_hrd <- function(taxain, sitein, res){
+pmmifun_hrd <- function(taxain, sitein, indicators, traits, mets = NULL){
   
   # add sample ids
   bugs <- taxain %>% 
@@ -324,9 +310,9 @@ pmmifun_hrd <- function(taxain, sitein, res){
   bugs.hybrid.m<-as.data.frame(acast(bugs, SampleID~FinalIDassigned, value.var="ComboResult", fun.aggregate=sum))
   
   # calculate metrics -----------------------------------------------------------
-  d.metrics<-pmmi_calcmetrics_hrd('diatoms', res = res, bugs.d.m, stations)
-  sba.metrics<-pmmi_calcmetrics_hrd('sba', res = res, bugs.sba.m, stations)
-  hybrid.metrics<-pmmi_calcmetrics_hrd('hybrid', res = res, bugs.hybrid.m, stations)
+  d.metrics<-pmmi_calcmetrics_hrd('diatoms', bugs.d.m, stations, indicators, traits, mets)
+  sba.metrics<-pmmi_calcmetrics_hrd('sba', bugs.sba.m, stations, indicators, traits, mets)
+  hybrid.metrics<-pmmi_calcmetrics_hrd('hybrid', bugs.hybrid.m, stations, indicators, traits, mets)
   
   # put all results in long format
   out <- list(
@@ -338,9 +324,77 @@ pmmifun_hrd <- function(taxain, sitein, res){
     mutate(
       value = map(value, gather, 'met', 'val', -SampleID)  
     ) %>% 
-    unnest %>% 
-    mutate(res = res)
+    unnest
   
   return(out)
+  
+}
+
+#' create a genus level traits table for a given proportion thresholds for the species
+#' 
+#' @param taxain_spp observed species data, development dataset 
+#' @param traits_in pmmilkup$traits at species level
+#' @param thrsh threshold for proportion of observed species in a trait for genus trait assignment
+trt_gen_fun <- function(taxain_spp, traits_in, thrsh = 0.5){
+  
+  # add a complete genus column to the traits lookup table
+  spp_gen_trt <- traits_in %>%
+    dplyr::select(Phylum, Class, Order, Family, Genus1, FinalIDassigned, everything()) %>% 
+    dplyr::select(-orig.FinalID, -AlgaeList) %>% 
+    mutate_if(is.factor, as.character) %>% 
+    rowwise() %>% 
+    mutate(Genus1 = do({
+      
+      # use genus1 if not empty
+      if(Genus1 != '')
+        return(Genus1)
+      
+      chk <- c(Phylum, Class, Order, Family, Genus1)
+      
+      # get first of FinalIDassigned if all higher taxa cats are empty
+      if(all(chk == '')){
+        
+        out <- strsplit(FinalIDassigned, ' ')[[1]][1]
+        
+        # get last non-empty cat  
+      } else {
+        
+        out <- chk[chk != ''] %>% rev %>% .[1]
+        
+      }
+      
+      return(out)
+      
+    })
+    ) %>% 
+    dplyr::select(-Phylum, -Class, -Order, -Family) %>% 
+    unique %>% 
+    gather('trait', 'est', -Genus1, -FinalIDassigned) %>% 
+    rename(FinalID = FinalIDassigned)
+  
+  # join species level data with genus traits to summarize counts by data dist
+  to_summ <- taxain_spp %>% 
+    left_join(spp_gen_trt, by = 'FinalID') %>% 
+    mutate(
+      Genus1 = ifelse(is.na(Genus1), gsub(' .*$', '', FinalID), Genus1),
+      est = ifelse(est %in% '', NA, est)
+    )
+
+  # summarize trait counts by data dist, get those with greater than .75, spread
+  traits_gen <- to_summ %>% 
+    group_by(Genus1, trait, est) %>% 
+    summarise(n = length(est)) %>% 
+    group_by(Genus1, trait) %>% 
+    mutate(prp = n / sum(n)) %>% 
+    group_by(Genus1, trait) %>% 
+    filter(prp == max(prp)) %>% # sometimes there are multiple trait categories above thrsh, pick max (most likely)
+    filter(!duplicated(prp)) %>% # sometimes the maximum proportions are equal, just pick the first one
+    filter(prp >= thrsh) %>% # filter proportions that are above the hreshold
+    ungroup %>% 
+    dplyr::select(-prp, -n) %>% 
+    spread(trait, est) %>% 
+    rename(FinalIDassigned = Genus1)
+
+  return(traits_gen)
   
 }

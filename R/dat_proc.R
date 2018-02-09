@@ -327,64 +327,10 @@ save(demo_algae_tax_gen, file = 'data/demo_algae_tax_gen.RData', compress = 'xz'
 ######
 # create a genus level trait table, must export to ASCI package genus branch
 
+# species traits table with complete genus column
+data(pmmilkup_spp)
 data(taxain_spp)
-
-# add a complete genus column to the traits lookup table
-# select only the trait categories used in selected metrics
-x <- pmmilkup$traits %>%
-  dplyr::select(Phylum, Class, Order, Family, Genus1, FinalIDassigned, everything()) %>% 
-  dplyr::select(-orig.FinalID, -AlgaeList) %>% 
-  mutate_if(is.factor, as.character) %>% 
-  rowwise() %>% 
-  mutate(Genus1 = do({
-    
-    # use genus1 if not empty
-    if(Genus1 != '')
-      return(Genus1)
-    
-    chk <- c(Phylum, Class, Order, Family, Genus1)
-    
-    # get first of FinalIDassigned if all higher taxa cats are empty
-    if(all(chk == '')){
-      
-      out <- strsplit(FinalIDassigned, ' ')[[1]][1]
-      
-      # get last non-empty cat  
-    } else {
-      
-      out <- chk[chk != ''] %>% rev %>% .[1]
-      
-    }
-    
-    return(out)
-    
-  })
-  ) %>% 
-  dplyr::select(-Phylum, -Class, -Order, -Family) %>% 
-  unique %>% 
-  gather('trait', 'est', -Genus1, -FinalIDassigned) %>% 
-  rename(FinalID = FinalIDassigned)
-
-# join species level data with genus traits to summarize counts by data dist
-to_summ <- taxain_spp %>% 
-  left_join(x, by = 'FinalID') %>% 
-  mutate(
-    Genus1 = ifelse(is.na(Genus1), gsub(' .*$', '', FinalID), Genus1),
-    est = ifelse(est %in% '', NA, est)
-  )
-
-# summarize trait counts by data dist, get those with greater than .75, spread
-traits_gen <- to_summ %>% 
-  group_by(Genus1, trait, est) %>% 
-  summarise(n = length(est)) %>% 
-  group_by(Genus1, trait) %>% 
-  mutate(prp = n / sum(n)) %>% 
-  group_by(Genus1, trait) %>% 
-  filter(prp > 0.75) %>% 
-  ungroup %>% 
-  dplyr::select(-prp, -n) %>% 
-  spread(trait, est) %>% 
-  rename(FinalIDassigned = Genus1)
+traits_gen <- trt_gen_fun(taxain_spp, pmmilkup_spp$traits, thrsh = 0.75)
 
 # save(traits_gen, file = 'C:/Users/Marcus.SCCWRP2K/Desktop/traits_gen.RData', compress = 'xz')
 
@@ -513,11 +459,18 @@ source('R/funcs.R')
 
 data(taxain_gen)
 data(taxain_spp)
+data(pmmilkup_gen)
+data(pmmilkup_spp)
 data(sitein)
 data(STE)
 
-rawmet_gen <- pmmifun_hrd(taxain_gen, sitein, res = 'gen')
-rawmet_spp <- pmmifun_hrd(taxain_spp, sitein, res = 'spp')
+indicators_gen <- pmmilkup_gen$indicators
+traits_gen <- pmmilkup_gen$traits
+indicators_spp <- pmmilkup_spp$indicators
+traits_spp <- pmmilkup_spp$traits
+
+rawmet_gen <- pmmifun_hrd(taxain_gen, sitein, indicators_gen, traits_gen)
+rawmet_spp <- pmmifun_hrd(taxain_spp, sitein, indicators_spp, traits_spp)
 
 save(rawmet_gen, file = 'data/rawmet_gen.RData', compress = 'xz')
 save(rawmet_spp, file = 'data/rawmet_spp.RData', compress = 'xz')
