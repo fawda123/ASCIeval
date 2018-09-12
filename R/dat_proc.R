@@ -474,12 +474,3 @@ rawmet_spp <- pmmifun_hrd(taxain_spp, sitein, indicators_spp, traits_spp)
 
 save(rawmet_gen, file = 'data/rawmet_gen.RData', compress = 'xz')
 save(rawmet_spp, file = 'data/rawmet_spp.RData', compress = 'xz')
-
-######
-# september 2018 figs for Susie
-# data from https://drive.google.com/open?id=19PLgB1zcBTEa76B1kTFu6AYzNDuOx51q
-
-asciall <- read.csv('C:/Users/Marcus/Desktop/asci.scores.forRafi.csv', stringsAsFactors = FALSE)
-csciall <- read.csv('C:/Users/Marcus/Desktop/csciscores_sampleID.csv', stringsAsFactors = FALSE)
-algsall <- read.csv('C:/Users/Marcus/Desktop/algaeibiscores.csv', stringsAsFactors = FALSE)
-
